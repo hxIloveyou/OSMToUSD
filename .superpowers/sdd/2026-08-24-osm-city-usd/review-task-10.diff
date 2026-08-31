@@ -1,0 +1,500 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Optional
+
+from pxr import UsdGeom
+
+from cityusd.buildings import LOD_LEVELS
+from cityusd.furniture import placeholder_lamp_mesh, placeholder_tree_mesh
+from cityusd.usd_write import configure_stage, write_prototype_layer
+
+WORLD_SUBLAYERS = [
+    "./layers/environment.usda",
+    "./layers/terrain.usda",
+    "./layers/nav.usda",
+    "./layers/base_osm.usdc",
+    "./overlay/equipment.usda",
+    "./overlay/infrastructure.usda",
+    "./overlay/obstacles_static.usda",
+    "./overlay/obstacles_dynamic.usda",
+    "./overlay/props.usda",
+]
+
+OVERLAY_LAYERS = [
+    ("equipment.usda", "Equipment"),
+    ("infrastructure.usda", "Infrastructure"),
+    ("obstacles_static.usda", "ObstaclesStatic"),
+    ("obstacles_dynamic.usda", "ObstaclesDynamic"),
+    ("props.usda", "Props"),
+]
+
+
+def write_empty_overlay(path: Path, prim_name: str) -> None:
+    stage = configure_stage(path)
+    UsdGeom.Xform.Define(stage, "/World/Overlay")
+    UsdGeom.Xform.Define(stage, f"/World/Overlay/{prim_name}")
+    stage.GetRootLayer().Save()
+
+
+def write_all_overlays(overlay_dir: Path) -> list[Path]:
+    overlay_dir = Path(overlay_dir)
+    overlay_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+    for filename, prim_name in OVERLAY_LAYERS:
+        dest = overlay_dir / filename
+        write_empty_overlay(dest, prim_name)
+        written.append(dest)
+    return written
+
+
+def write_world(path: Path, scene_id: str, sublayers: list[str]) -> None:
+    stage = configure_stage(path)
+    root = stage.GetRootLayer()
+    root.subLayerPaths = list(sublayers)
+    world = stage.GetDefaultPrim()
+    world.SetCustomData({"scene_id": scene_id})
+    root.Save()
+
+
+def write_meta(path: Path, payload: dict) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def build_package_meta(
+    scene_id: str,
+    crs: Optional[dict] = None,
+    **overrides,
+) -> dict:
+    payload = {
+        "spec_version": "1.0",
+        "scene_id": scene_id,
+        "crs": crs or {},
+        "units": {"meters_per_unit": 0.01, "up_axis": "Z"},
+        "layers": {
+            "environment": "./layers/environment.usda",
+            "terrain": "./layers/terrain.usda",
+            "nav": "./layers/nav.usda",
+            "base_osm": "./layers/base_osm.usdc",
+        },
+        "overlay": {
+            "equipment": "./overlay/equipment.usda",
+            "infrastructure": "./overlay/infrastructure.usda",
+            "obstacles_static": "./overlay/obstacles_static.usda",
+            "obstacles_dynamic": "./overlay/obstacles_dynamic.usda",
+            "props": "./overlay/props.usda",
+        },
+        "lod": [dict(level) for level in LOD_LEVELS],
+        "vegetation_instancer": True,
+        "lamp_instancer": True,
+        "prototype_swap": True,
+        "capabilities": {"has_building_lod": True},
+    }
+    payload.update(overrides)
+    return payload
+
+
+def write_prototype_files(models_dir: Path) -> tuple[Path, Path]:
+    proto_dir = Path(models_dir) / "prototypes"
+    proto_dir.mkdir(parents=True, exist_ok=True)
+    tree_path = proto_dir / "tree.usda"
+    lamp_path = proto_dir / "lamp.usda"
+    tree_verts, tree_faces = placeholder_tree_mesh()
+    lamp_verts, lamp_faces = placeholder_lamp_mesh()
+    write_prototype_layer(tree_path, "TreePlaceholder", tree_verts, tree_faces)
+    write_prototype_layer(lamp_path, "LampPlaceholder", lamp_verts, lamp_faces)
+    return tree_path, lamp_path
+
+---
+from __future__ import annotations
+
+import math
+from pathlib import Path
+from typing import Optional
+
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
+
+from cityusd.types import RasterMeta
+
+METERS_PER_UNIT = 0.01
+
+
+def configure_stage(path: Path) -> Usd.Stage:
+    """Create a new USDA/USDC stage: cm units, Z-up, defaultPrim /World."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        path.unlink()
+    stage = Usd.Stage.CreateNew(str(path))
+    UsdGeom.SetStageMetersPerUnit(stage, METERS_PER_UNIT)
+    UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+    world = UsdGeom.Xform.Define(stage, "/World")
+    stage.SetDefaultPrim(world.GetPrim())
+    return stage
+
+
+def write_mesh(
+    stage,
+    path: str,
+    points_cm,
+    face_counts,
+    face_indices,
+    material_path: Optional[str],
+) -> None:
+    mesh = UsdGeom.Mesh.Define(stage, path)
+    pts = []
+    for p in points_cm:
+        x = float(p[0])
+        y = float(p[1])
+        z = float(p[2]) if len(p) > 2 else 0.0
+        pts.append(Gf.Vec3f(x, y, z))
+    mesh.CreatePointsAttr(pts)
+    mesh.CreateFaceVertexCountsAttr([int(c) for c in face_counts])
+    mesh.CreateFaceVertexIndicesAttr([int(i) for i in face_indices])
+    mesh.CreateSubdivisionSchemeAttr().Set(UsdGeom.Tokens.none)
+    if material_path:
+        mat = UsdShade.Material.Get(stage, material_path)
+        if mat and mat.GetPrim().IsValid():
+            UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(mat)
+
+
+def write_point_instancer(stage, path: str, proto_prim_path: str, positions_cm, yaws_rad) -> None:
+    instancer = UsdGeom.PointInstancer.Define(stage, path)
+    instancer.CreatePrototypesRel().SetTargets([proto_prim_path])
+    positions_cm = list(positions_cm)
+    n = len(positions_cm)
+    positions = []
+    for p in positions_cm:
+        x = float(p[0])
+        y = float(p[1])
+        z = float(p[2]) if len(p) > 2 else 0.0
+        positions.append(Gf.Vec3f(x, y, z))
+    instancer.CreateProtoIndicesAttr([0] * n)
+    instancer.CreatePositionsAttr(positions)
+    yaws = list(yaws_rad) if yaws_rad is not None else []
+    if len(yaws) < n:
+        yaws.extend([0.0] * (n - len(yaws)))
+    orients = []
+    for yaw in yaws[:n]:
+        half = float(yaw) * 0.5
+        orients.append(Gf.Quath(math.cos(half), 0.0, 0.0, math.sin(half)))
+    instancer.CreateOrientationsAttr(orients)
+    instancer.CreateScalesAttr([Gf.Vec3f(1.0, 1.0, 1.0)] * n)
+
+
+def write_placeholder_prototype(stage, path: str, verts, faces) -> None:
+    counts = [len(face) for face in faces]
+    indices = [int(i) for face in faces for i in face]
+    write_mesh(stage, path, verts, counts, indices, None)
+
+
+def write_prototype_layer(path: Path, prim_name: str, verts, faces) -> None:
+    """Standalone prototype USDA; defaultPrim is the named Xform (swap-friendly)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        path.unlink()
+    stage = Usd.Stage.CreateNew(str(path))
+    UsdGeom.SetStageMetersPerUnit(stage, METERS_PER_UNIT)
+    UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+    xf = UsdGeom.Xform.Define(stage, f"/{prim_name}")
+    stage.SetDefaultPrim(xf.GetPrim())
+    write_placeholder_prototype(stage, f"/{prim_name}/Geom", verts, faces)
+    stage.GetRootLayer().Save()
+
+
+def write_preview_material(
+    stage,
+    path: str,
+    diffuse_rgb=(0.5, 0.5, 0.5),
+    texture_path: Optional[str] = None,
+) -> None:
+    mat = UsdShade.Material.Define(stage, path)
+    shader = UsdShade.Shader.Define(stage, f"{path}/PreviewSurface")
+    shader.CreateIdAttr("UsdPreviewSurface")
+    shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.8)
+    if texture_path:
+        tex = UsdShade.Shader.Define(stage, f"{path}/DiffuseTex")
+        tex.CreateIdAttr("UsdUVTexture")
+        tex.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(texture_path)
+        shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).ConnectToSource(
+            tex.ConnectableAPI(), "rgb"
+        )
+    else:
+        shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(
+            Gf.Vec3f(float(diffuse_rgb[0]), float(diffuse_rgb[1]), float(diffuse_rgb[2]))
+        )
+    mat.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+
+
+def write_stripe_png(
+    path: Path,
+    stripe_rgb: tuple[int, int, int],
+    bg_rgb: tuple[int, int, int] = (40, 40, 40),
+) -> Path:
+    from PIL import Image
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img = Image.new("RGB", (8, 8), bg_rgb)
+    pixels = img.load()
+    for y in range(8):
+        for x in range(8):
+            if (x // 2) % 2 == 0:
+                pixels[x, y] = stripe_rgb
+    img.save(path)
+    return path
+
+
+def ensure_marking_textures(textures_dir: Path) -> dict[str, Path]:
+    textures_dir = Path(textures_dir)
+    return {
+        "yellow": write_stripe_png(textures_dir / "marking_yellow.png", (255, 204, 0)),
+        "white": write_stripe_png(textures_dir / "marking_white.png", (255, 255, 255)),
+    }
+
+
+def write_building_cell(
+    stage,
+    ix: int,
+    iy: int,
+    lod_meshes: dict,
+    switch_distance_m=0.0,
+) -> None:
+    parent_path = f"/World/City/Buildings/c{ix}_{iy}"
+    parent = UsdGeom.Xform.Define(stage, parent_path)
+    parent.GetPrim().SetCustomData({"switch_distance_m": switch_distance_m})
+    for name in ("LOD0", "LOD1", "LOD2"):
+        mesh = lod_meshes.get(name) if lod_meshes else None
+        if not mesh:
+            continue
+        points_cm, face_counts, face_indices = mesh[0], mesh[1], mesh[2]
+        material_path = mesh[3] if len(mesh) > 3 else None
+        write_mesh(
+            stage,
+            f"{parent_path}/{name}",
+            points_cm,
+            face_counts,
+            face_indices,
+            material_path,
+        )
+
+
+def write_environment_layer(path: Path) -> None:
+    stage = configure_stage(path)
+    UsdGeom.Xform.Define(stage, "/World/Environment")
+    stage.GetRootLayer().Save()
+
+
+def write_terrain_layer(
+    path: Path,
+    heightmap_rel: Optional[str],
+    ortho_rel: Optional[str],
+    meta: Optional[RasterMeta],
+) -> None:
+    stage = configure_stage(path)
+    xf = UsdGeom.Xform.Define(stage, "/World/Terrain")
+    prim = xf.GetPrim()
+    custom = {
+        "heightmap_png": heightmap_rel or "",
+        "ortho_png": ortho_rel or "",
+    }
+    if meta is not None:
+        custom["crs_epsg"] = int(meta.crs_epsg)
+        custom["range_source"] = meta.range_source
+    prim.SetCustomData(custom)
+    _write_invisible_plane(stage, "/World/Terrain/RefPlane")
+    stage.GetRootLayer().Save()
+
+
+def write_nav_layer(path: Path, pgm_rel: Optional[str], yaml_rel: Optional[str]) -> None:
+    stage = configure_stage(path)
+    xf = UsdGeom.Xform.Define(stage, "/World/Nav")
+    xf.GetPrim().SetCustomData(
+        {
+            "map_pgm": pgm_rel or "",
+            "map_yaml": yaml_rel or "",
+        }
+    )
+    _write_invisible_plane(stage, "/World/Nav/RefPlane")
+    stage.GetRootLayer().Save()
+
+
+def _write_invisible_plane(stage, path: str, z_cm: float = -1.0) -> None:
+    mesh = UsdGeom.Mesh.Define(stage, path)
+    half = 0.5
+    mesh.CreatePointsAttr(
+        [
+            Gf.Vec3f(-half, -half, z_cm),
+            Gf.Vec3f(half, -half, z_cm),
+            Gf.Vec3f(half, half, z_cm),
+            Gf.Vec3f(-half, half, z_cm),
+        ]
+    )
+    mesh.CreateFaceVertexCountsAttr([4])
+    mesh.CreateFaceVertexIndicesAttr([0, 1, 2, 3])
+    mesh.CreateSubdivisionSchemeAttr().Set(UsdGeom.Tokens.none)
+    mesh.CreateVisibilityAttr().Set(UsdGeom.Tokens.invisible)
+
+---
+import json
+from pathlib import Path
+
+from pxr import Usd, UsdGeom
+
+from cityusd.furniture import placeholder_tree_mesh
+from cityusd.package import (
+    WORLD_SUBLAYERS,
+    build_package_meta,
+    write_empty_overlay,
+    write_meta,
+    write_prototype_files,
+    write_world,
+)
+from cityusd.usd_write import (
+    write_environment_layer,
+    write_mesh,
+    write_nav_layer,
+    write_placeholder_prototype,
+    write_point_instancer,
+    write_terrain_layer,
+)
+
+
+def test_world_opens(tmp_path):
+    env = tmp_path / "layers" / "environment.usda"
+    env.parent.mkdir(parents=True)
+    write_environment_layer(env)
+    ov = tmp_path / "overlay"
+    ov.mkdir()
+    write_empty_overlay(ov / "equipment.usda", "Equipment")
+    world = tmp_path / "World_test.usda"
+    write_world(world, "test", [
+        "./layers/environment.usda",
+        "./overlay/equipment.usda",
+    ])
+    stage = Usd.Stage.Open(str(world))
+    assert stage.GetDefaultPrim().GetName() == "World"
+    assert UsdGeom.GetStageMetersPerUnit(stage) == 0.01
+
+
+def test_world_up_axis_and_sublayers(tmp_path):
+    world = tmp_path / "World_sub.usda"
+    write_world(world, "sub", list(WORLD_SUBLAYERS))
+    stage = Usd.Stage.Open(str(world))
+    assert UsdGeom.GetStageUpAxis(stage) == UsdGeom.Tokens.z
+    assert list(stage.GetRootLayer().subLayerPaths) == list(WORLD_SUBLAYERS)
+
+
+def test_overlay_empty_xforms(tmp_path):
+    names = [
+        "Equipment",
+        "Infrastructure",
+        "ObstaclesStatic",
+        "ObstaclesDynamic",
+        "Props",
+    ]
+    for name in names:
+        path = tmp_path / f"{name}.usda"
+        write_empty_overlay(path, name)
+        stage = Usd.Stage.Open(str(path))
+        prim = stage.GetPrimAtPath(f"/World/Overlay/{name}")
+        assert prim.IsValid()
+        assert prim.IsA(UsdGeom.Xform)
+        assert list(prim.GetChildren()) == []
+        assert UsdGeom.GetStageMetersPerUnit(stage) == 0.01
+        assert UsdGeom.GetStageUpAxis(stage) == UsdGeom.Tokens.z
+
+
+def test_terrain_nav_custom_data(tmp_path):
+    terrain = tmp_path / "terrain.usda"
+    write_terrain_layer(
+        terrain,
+        "./terrain_src/heightmap_16bit.png",
+        "./terrain_src/ortho.png",
+        None,
+    )
+    tstage = Usd.Stage.Open(str(terrain))
+    tprim = tstage.GetPrimAtPath("/World/Terrain")
+    tcd = tprim.GetCustomData()
+    assert tcd["heightmap_png"] == "./terrain_src/heightmap_16bit.png"
+    assert tcd["ortho_png"] == "./terrain_src/ortho.png"
+    plane = tstage.GetPrimAtPath("/World/Terrain/RefPlane")
+    assert plane.IsValid()
+    assert UsdGeom.Imageable(plane).GetVisibilityAttr().Get() == UsdGeom.Tokens.invisible
+
+    nav = tmp_path / "nav.usda"
+    write_nav_layer(nav, "./nav/map.pgm", "./nav/map.yaml")
+    nstage = Usd.Stage.Open(str(nav))
+    ncd = nstage.GetPrimAtPath("/World/Nav").GetCustomData()
+    assert ncd["map_pgm"] == "./nav/map.pgm"
+    assert ncd["map_yaml"] == "./nav/map.yaml"
+
+
+def test_point_instancer_and_prototype(tmp_path):
+    path = tmp_path / "veg.usda"
+    stage = Usd.Stage.CreateNew(str(path))
+    UsdGeom.SetStageMetersPerUnit(stage, 0.01)
+    UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.z)
+    world = UsdGeom.Xform.Define(stage, "/World")
+    stage.SetDefaultPrim(world.GetPrim())
+    verts, faces = placeholder_tree_mesh()
+    proto = "/World/City/Vegetation/Prototypes/TreePlaceholder"
+    write_placeholder_prototype(stage, proto, verts, faces)
+    write_point_instancer(
+        stage,
+        "/World/City/Vegetation/I_Trees",
+        proto,
+        [(100.0, 200.0, 0.0), (300.0, 0.0, 0.0)],
+        [0.0, 1.57],
+    )
+    write_mesh(
+        stage,
+        "/World/City/Buildings/c0_0/LOD0",
+        [(0.0, 0.0, 0.0), (100.0, 0.0, 0.0), (0.0, 100.0, 0.0)],
+        [3],
+        [0, 1, 2],
+        None,
+    )
+    stage.GetRootLayer().Save()
+
+    opened = Usd.Stage.Open(str(path))
+    inst = UsdGeom.PointInstancer(opened.GetPrimAtPath("/World/City/Vegetation/I_Trees"))
+    positions = list(inst.GetPositionsAttr().Get())
+    assert len(positions) == 2
+    assert abs(positions[0][0] - 100.0) < 1e-4
+    targets = [str(t) for t in inst.GetPrototypesRel().GetTargets()]
+    assert any("TreePlaceholder" in t for t in targets)
+    assert opened.GetPrimAtPath("/World/City/Buildings/c0_0/LOD0").IsA(UsdGeom.Mesh)
+
+
+def test_prototype_files_and_meta(tmp_path):
+    tree, lamp = write_prototype_files(tmp_path / "models")
+    assert tree.name == "tree.usda"
+    assert lamp.name == "lamp.usda"
+    tstage = Usd.Stage.Open(str(tree))
+    lstage = Usd.Stage.Open(str(lamp))
+    assert tstage.GetDefaultPrim() is not None
+    assert lstage.GetDefaultPrim() is not None
+
+    payload = build_package_meta("demo", crs={"epsg": 32651})
+    meta_path = tmp_path / "meta.json"
+    write_meta(meta_path, payload)
+    data = json.loads(meta_path.read_text(encoding="utf-8"))
+    assert data["spec_version"] == "1.0"
+    assert data["scene_id"] == "demo"
+    assert data["crs"]["epsg"] == 32651
+    assert data["units"]["meters_per_unit"] == 0.01
+    assert data["vegetation_instancer"] is True
+    assert data["lamp_instancer"] is True
+    assert data["prototype_swap"] is True
+    assert data["capabilities"]["has_building_lod"] is True
+    assert "lod" in data
+    assert "layers" in data
+    assert "overlay" in data

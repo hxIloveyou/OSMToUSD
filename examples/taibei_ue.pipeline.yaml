@@ -1,0 +1,34 @@
+schema_version: "0.2"
+extends:
+  - ../presets/taibei_ue.yaml
+
+scene:
+  id: ""
+  title: "Taipei UE release"
+
+pipeline:
+  - step: resolve_extent
+    enabled: true
+
+  - step: terrain
+    enabled: true
+    depends_on: [resolve_extent]
+
+  - step: osm_city_usd
+    enabled: true
+
+  - step: osm_labels
+    enabled: true
+
+  - step: nav_pgm
+    enabled: true
+
+  - step: overlay
+    enabled: true
+
+  - step: assemble_world
+    enabled: true
+
+  - step: package_zip
+    enabled: true
+    depends_on: [assemble_world]

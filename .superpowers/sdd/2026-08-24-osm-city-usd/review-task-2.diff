@@ -1,0 +1,171 @@
+# Review package: Task 2 (no git)
+## Files
+E:\UEWork\ROS2Test\CityUsd\tools\cityusd\scan_inputs.py
+E:\UEWork\ROS2Test\CityUsd\tests\test_scan_inputs.py
+## Diff
+--- a/dev/null
++++ b/tools/cityusd/scan_inputs.py
++from __future__ import annotations
++
++from dataclasses import dataclass
++from pathlib import Path
++from typing import Optional
++
++TIFF_SUFFIXES = {".tif", ".tiff"}
++IMAGERY_SUFFIXES = {".tif", ".tiff", ".png"}
++
++
++@dataclass
++class FoundInputs:
++    osm: Optional[Path]
++    dem: Optional[Path]
++    imagery: Optional[Path]
++    assets_dir: Optional[Path]
++    descriptions: list[Path]
++
++
++def _find_osm(data_dir: Path) -> Optional[Path]:
++    search_dirs: list[Path] = []
++    osm_dir = data_dir / "osm"
++    if osm_dir.is_dir():
++        search_dirs.append(osm_dir)
++    search_dirs.append(data_dir)
++
++    for directory in search_dirs:
++        pbf_files = sorted(directory.glob("*.osm.pbf"))
++        if pbf_files:
++            return pbf_files[0]
++        osm_files = sorted(directory.glob("*.osm"))
++        if osm_files:
++            return osm_files[0]
++    return None
++
++
++def _collect_by_suffix(directory: Path, suffixes: set[str], recursive: bool) -> list[Path]:
++    if not directory.is_dir():
++        return []
++    found: list[Path] = []
++    iterator = directory.rglob("*") if recursive else directory.glob("*")
++    for path in iterator:
++        if path.is_file() and path.suffix.lower() in suffixes:
++            found.append(path)
++    return found
++
++
++def _largest_file(candidates: list[Path]) -> Optional[Path]:
++    if not candidates:
++        return None
++    return max(candidates, key=lambda p: p.stat().st_size)
++
++
++def _find_dem(data_dir: Path) -> Optional[Path]:
++    dem_dir = data_dir / "dem"
++    candidates = _collect_by_suffix(dem_dir, TIFF_SUFFIXES, recursive=True)
++    if not candidates:
++        candidates = _collect_by_suffix(data_dir, TIFF_SUFFIXES, recursive=False)
++    return _largest_file(candidates)
++
++
++def _find_imagery(data_dir: Path, dem: Optional[Path]) -> Optional[Path]:
++    imagery_dir = data_dir / "imagery"
++    candidates = _collect_by_suffix(imagery_dir, IMAGERY_SUFFIXES, recursive=True)
++    if not candidates:
++        candidates = _collect_by_suffix(data_dir, IMAGERY_SUFFIXES, recursive=False)
++    if dem is not None:
++        candidates = [p for p in candidates if p.resolve() != dem.resolve()]
++    return _largest_file(candidates)
++
++
++def _find_descriptions(data_dir: Path) -> list[Path]:
++    desc_dir = data_dir / "descriptions"
++    if not desc_dir.is_dir():
++        return []
++    return sorted(desc_dir.glob("*.json"))
++
++
++def _find_assets_dir(data_dir: Path) -> Optional[Path]:
++    assets = data_dir / "assets"
++    return assets if assets.is_dir() else None
++
++
++def scan_data_dir(data_dir: Path) -> FoundInputs:
++    dem = _find_dem(data_dir)
++    return FoundInputs(
++        osm=_find_osm(data_dir),
++        dem=dem,
++        imagery=_find_imagery(data_dir, dem),
++        assets_dir=_find_assets_dir(data_dir),
++        descriptions=_find_descriptions(data_dir),
++    )
+--- a/dev/null
++++ b/tests/test_scan_inputs.py
++from pathlib import Path
++
++from cityusd.scan_inputs import scan_data_dir
++
++
++def test_prefers_pbf(tmp_path: Path):
++    (tmp_path / "osm").mkdir()
++    (tmp_path / "osm" / "a.osm").write_text("<osm/>")
++    (tmp_path / "osm" / "b.osm.pbf").write_bytes(b"pbf")
++    found = scan_data_dir(tmp_path)
++    assert found.osm.name == "b.osm.pbf"
++
++
++def test_missing_osm(tmp_path: Path):
++    found = scan_data_dir(tmp_path)
++    assert found.osm is None
++
++
++def test_osm_subdir_before_root(tmp_path: Path):
++    (tmp_path / "root.osm").write_text("<osm/>")
++    (tmp_path / "osm").mkdir()
++    (tmp_path / "osm" / "nested.osm").write_text("<osm/>")
++    found = scan_data_dir(tmp_path)
++    assert found.osm.name == "nested.osm"
++
++
++def test_dem_largest_in_dem_dir(tmp_path: Path):
++    dem_dir = tmp_path / "dem"
++    dem_dir.mkdir()
++    small = dem_dir / "small.tif"
++    large = dem_dir / "large.tif"
++    small.write_bytes(b"x" * 100)
++    large.write_bytes(b"x" * 1000)
++    found = scan_data_dir(tmp_path)
++    assert found.dem == large
++
++
++def test_imagery_excludes_dem(tmp_path: Path):
++    imagery_dir = tmp_path / "imagery"
++    imagery_dir.mkdir()
++    shared = tmp_path / "shared.tif"
++    shared.write_bytes(b"x" * 5000)
++    other = imagery_dir / "view.png"
++    other.write_bytes(b"x" * 100)
++    found = scan_data_dir(tmp_path)
++    assert found.dem == shared
++    assert found.imagery == other
++
++
++def test_descriptions_json(tmp_path: Path):
++    desc_dir = tmp_path / "descriptions"
++    desc_dir.mkdir()
++    a = desc_dir / "a.json"
++    b = desc_dir / "b.json"
++    a.write_text("{}")
++    b.write_text("{}")
++    found = scan_data_dir(tmp_path)
++    assert found.descriptions == sorted([a, b])
++
++
++def test_assets_dir(tmp_path: Path):
++    assets = tmp_path / "assets"
++    assets.mkdir()
++    found = scan_data_dir(tmp_path)
++    assert found.assets_dir == assets
++
++
++def test_assets_missing(tmp_path: Path):
++    found = scan_data_dir(tmp_path)
++    assert found.assets_dir is None

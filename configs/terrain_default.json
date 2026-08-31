@@ -1,0 +1,19 @@
+{
+  "utm_pixel_m": 10.0,
+  "heightmap": {
+    "size": 2017,
+    "square_ue": true,
+    "format": ["r16", "png"]
+  },
+  "ortho": {
+    "max_size_px": 4096
+  },
+  "outputs": {
+    "dem_utm": "terrain/dem_utm.tif",
+    "ortho_utm": "terrain/ortho_utm.tif",
+    "heightmap_png": "terrain/heightmap_ue.png",
+    "heightmap_r16": "terrain/heightmap_ue.r16",
+    "heightmap_meta": "terrain/heightmap_meta.json",
+    "ortho_png": "terrain/ortho_ue.png"
+  }
+}

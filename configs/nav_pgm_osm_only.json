@@ -1,0 +1,25 @@
+{
+  "resolution_m": 1.0,
+  "simple_buildings": false,
+  "sources": {
+    "occupancy": "osm"
+  },
+  "layers": {
+    "roads": true,
+    "buildings": true,
+    "water": true
+  },
+  "align_overlay": {
+    "enabled": true,
+    "max_preview_side": 4096,
+    "z_cm": 50.0,
+    "compose_into_world": false,
+    "note": "DEBUG ONLY. Set enabled:false for production. Never composed into World."
+  },
+  "outputs": {
+    "map_pgm": "nav/map.pgm",
+    "cost_pgm": "nav/cost.pgm",
+    "map_yaml": "nav/map.yaml",
+    "meta_json": "nav/map_meta.json"
+  }
+}

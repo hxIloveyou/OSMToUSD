@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AssetCatalogEntry",
+  "type": "object",
+  "required": [
+    "asset_id",
+    "asset_type",
+    "file"
+  ],
+  "properties": {
+    "asset_id": {
+      "type": "string"
+    },
+    "asset_type": {
+      "type": "string"
+    },
+    "file": {
+      "type": "string"
+    },
+    "format": {
+      "type": "string"
+    },
+    "pivot": {
+      "type": "string"
+    },
+    "forward": {
+      "type": "string"
+    },
+    "up": {
+      "type": "string"
+    },
+    "consume": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sim": {
+      "type": "object"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

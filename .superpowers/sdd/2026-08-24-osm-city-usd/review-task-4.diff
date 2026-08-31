@@ -1,0 +1,268 @@
+# Review package Task 4
++++ b/tools/cityusd/rasters.py
++"""DEM heightmap and ortho imagery export."""
++
++from __future__ import annotations
++
++import json
++from pathlib import Path
++from typing import Optional, Tuple
++
++import numpy as np
++import rasterio
++from PIL import Image
++from pyproj import Transformer
++from rasterio.transform import from_bounds
++from rasterio.warp import Resampling, reproject
++
++from cityusd.types import ExtentM, Origin, RasterMeta
++
++_HEIGHTMAP_MAX_SIDE = 2049
++
++
++def _utm_xy(lon: float, lat: float, epsg: int) -> Tuple[float, float]:
++    transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
++    east, north = transformer.transform(lon, lat)
++    return float(east), float(north)
++
++
++def _odd_target_size(width_m: float, height_m: float, max_side: int) -> Tuple[int, int]:
++    """Longest side = max_side; keep aspect; prefer both dimensions odd."""
++    if width_m <= 0 or height_m <= 0:
++        raise ValueError("extent width and height must be positive")
++    if width_m >= height_m:
++        w = max_side
++        h = max(1, int(round(max_side * height_m / width_m)))
++        if h % 2 == 0:
++            h = h + 1 if h < max_side else h - 1
++            h = max(1, h)
++    else:
++        h = max_side
++        w = max(1, int(round(max_side * width_m / height_m)))
++        if w % 2 == 0:
++            w = w + 1 if w < max_side else w - 1
++            w = max(1, w)
++    return w, h
++
++
++def _utm_bounds(origin: Origin, extent: ExtentM) -> Tuple[float, float, float, float, Tuple[float, float]]:
++    utm_origin = _utm_xy(origin.lon, origin.lat, origin.epsg)
++    left = utm_origin[0] + extent.west
++    bottom = utm_origin[1] + extent.south
++    right = utm_origin[0] + extent.east
++    top = utm_origin[1] + extent.north
++    return left, bottom, right, top, utm_origin
++
++
++def _extent_json(extent: ExtentM) -> dict:
++    # east/north = widths; west/south = local mins (local max east/north = west+east, south+north)
++    return {
++        "east": extent.width,
++        "north": extent.height,
++        "west": extent.west,
++        "south": extent.south,
++    }
++
++
++def _write_meta_json(
++    out_json: Path,
++    *,
++    size_px: Tuple[int, int],
++    zmin_m: Optional[float],
++    zmax_m: Optional[float],
++    origin: Origin,
++    utm_origin: Tuple[float, float],
++    extent: ExtentM,
++    meters_per_pixel: Tuple[float, float],
++) -> None:
++    payload = {
++        "size_px": [int(size_px[0]), int(size_px[1])],
++        "zmin_m": zmin_m,
++        "zmax_m": zmax_m,
++        "origin_wgs84": {
++            "lon": origin.lon,
++            "lat": origin.lat,
++            "height_m": origin.height_m,
++        },
++        "utm_origin": [utm_origin[0], utm_origin[1]],
++        "extent_m": _extent_json(extent),
++        "meters_per_pixel": [meters_per_pixel[0], meters_per_pixel[1]],
++        "crs_epsg": origin.epsg,
++    }
++    out_json.parent.mkdir(parents=True, exist_ok=True)
++    out_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
++
++
++def _meters_per_pixel(extent: ExtentM, size_px: Tuple[int, int]) -> Tuple[float, float]:
++    return (
++        extent.width / (size_px[0] - 1),
++        extent.height / (size_px[1] - 1),
++    )
++
++
++def write_heightmap(
++    dem_path: Path,
++    origin: Origin,
++    extent: ExtentM,
++    out_png: Path,
++    out_json: Path,
++) -> RasterMeta:
++    size_px = _odd_target_size(extent.width, extent.height, _HEIGHTMAP_MAX_SIDE)
++    left, bottom, right, top, utm_origin = _utm_bounds(origin, extent)
++    dst_transform = from_bounds(left, bottom, right, top, size_px[0], size_px[1])
++    dst_crs = f"EPSG:{origin.epsg}"
++
++    destination = np.full((size_px[1], size_px[0]), np.nan, dtype=np.float32)
++    with rasterio.open(dem_path) as src:
++        reproject(
++            source=rasterio.band(src, 1),
++            destination=destination,
++            src_transform=src.transform,
++            src_crs=src.crs,
++            dst_transform=dst_transform,
++            dst_crs=dst_crs,
++            resampling=Resampling.bilinear,
++            src_nodata=src.nodata,
++            dst_nodata=np.nan,
++        )
++
++    valid = destination[np.isfinite(destination)]
++    if valid.size == 0:
++        raise ValueError(f"no valid DEM samples in extent for {dem_path}")
++    zmin_m = float(valid.min())
++    zmax_m = float(valid.max())
++    if zmax_m <= zmin_m:
++        zmax_m = zmin_m + 1.0
++
++    scaled = np.zeros((size_px[1], size_px[0]), dtype=np.uint16)
++    mask = np.isfinite(destination)
++    scaled[mask] = (
++        ((destination[mask] - zmin_m) / (zmax_m - zmin_m) * 65535.0)
++        .clip(0, 65535)
++        .astype(np.uint16)
++    )
++
++    out_png.parent.mkdir(parents=True, exist_ok=True)
++    Image.fromarray(scaled, mode="I;16").save(out_png)
++
++    mpp = _meters_per_pixel(extent, size_px)
++    _write_meta_json(
++        out_json,
++        size_px=size_px,
++        zmin_m=zmin_m,
++        zmax_m=zmax_m,
++        origin=origin,
++        utm_origin=utm_origin,
++        extent=extent,
++        meters_per_pixel=mpp,
++    )
++    return RasterMeta(
++        size_px=size_px,
++        zmin_m=zmin_m,
++        zmax_m=zmax_m,
++        origin=origin,
++        utm_origin=utm_origin,
++        extent_m=extent,
++        meters_per_pixel=mpp,
++        crs_epsg=origin.epsg,
++        range_source="dem",
++    )
++
++
++def write_ortho(
++    imagery_path: Path,
++    origin: Origin,
++    extent: ExtentM,
++    out_png: Path,
++    out_json: Path,
++    max_dim: int = 8192,
++) -> RasterMeta:
++    long_side = max(4096, min(max_dim, 8192))
++    size_px = _odd_target_size(extent.width, extent.height, long_side)
++    left, bottom, right, top, utm_origin = _utm_bounds(origin, extent)
++    dst_transform = from_bounds(left, bottom, right, top, size_px[0], size_px[1])
++    dst_crs = f"EPSG:{origin.epsg}"
++
++    with rasterio.open(imagery_path) as src:
++        band_count = min(3, src.count) if src.count >= 1 else 0
++        if band_count == 0:
++            raise ValueError(f"imagery has no bands: {imagery_path}")
++        bands = []
++        for i in range(1, band_count + 1):
++            destination = np.zeros((size_px[1], size_px[0]), dtype=np.float32)
++            reproject(
++                source=rasterio.band(src, i),
++                destination=destination,
++                src_transform=src.transform,
++                src_crs=src.crs,
++                dst_transform=dst_transform,
++                dst_crs=dst_crs,
++                resampling=Resampling.bilinear,
++                src_nodata=src.nodata,
++                dst_nodata=0,
++            )
++            bands.append(destination)
++        while len(bands) < 3:
++            bands.append(bands[-1].copy())
++
++    rgb = np.stack(bands[:3], axis=-1)
++    # Scale to 8-bit if source values exceed 255 (e.g. uint16 imagery)
++    finite = rgb[np.isfinite(rgb)]
++    vmax = float(finite.max()) if finite.size else 0.0
++    if vmax > 255.0:
++        rgb = (rgb / vmax * 255.0).clip(0, 255)
++    rgb_u8 = np.nan_to_num(rgb, nan=0.0).clip(0, 255).astype(np.uint8)
++
++    out_png.parent.mkdir(parents=True, exist_ok=True)
++    Image.fromarray(rgb_u8, mode="RGB").save(out_png)
++
++    mpp = _meters_per_pixel(extent, size_px)
++    _write_meta_json(
++        out_json,
++        size_px=size_px,
++        zmin_m=None,
++        zmax_m=None,
++        origin=origin,
++        utm_origin=utm_origin,
++        extent=extent,
++        meters_per_pixel=mpp,
++    )
++    return RasterMeta(
++        size_px=size_px,
++        zmin_m=None,
++        zmax_m=None,
++        origin=origin,
++        utm_origin=utm_origin,
++        extent_m=extent,
++        meters_per_pixel=mpp,
++        crs_epsg=origin.epsg,
++        range_source="dem",
++    )
++++ b/tests/test_rasters.py
++import json
++
++import numpy as np
++import rasterio
++from rasterio.transform import from_origin
++
++from cityusd.crs import make_origin, extent_from_lonlat_bbox
++from cityusd.rasters import write_heightmap
++
++
++def test_heightmap_written(tmp_path):
++    tif = tmp_path / "dem.tif"
++    arr = np.linspace(10.0, 40.0, 32 * 32, dtype=np.float32).reshape(32, 32)
++    transform = from_origin(118.999, 36.002, 0.0001, 0.0001)
++    with rasterio.open(
++        tif, "w", driver="GTiff", height=32, width=32, count=1,
++        dtype="float32", crs="EPSG:4326", transform=transform,
++    ) as dst:
++        dst.write(arr, 1)
++    origin = make_origin(119.0006, 36.0004)
++    extent = extent_from_lonlat_bbox(118.999, 35.9988, 119.0022, 36.002, origin)
++    meta = write_heightmap(tif, origin, extent, tmp_path / "h.png", tmp_path / "h.json")
++    assert meta.size_px[0] <= 2049 and meta.size_px[1] <= 2049
++    assert meta.zmin_m < meta.zmax_m
++    assert (tmp_path / "h.png").exists()
++    payload = json.loads((tmp_path / "h.json").read_text(encoding="utf-8"))
++    assert payload["crs_epsg"] == origin.epsg

@@ -1,0 +1,9 @@
+{
+  "output": "{scene_id}.zip",
+  "compression": "deflated",
+  "exclude": [
+    "backups/**",
+    "debug/**",
+    "**/*.pending.json"
+  ]
+}

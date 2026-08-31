@@ -1,0 +1,455 @@
+# Task 6
++++ b/tools/cityusd/roads.py
++from __future__ import annotations
++
++import math
++from typing import Iterable, Optional
++
++from shapely.geometry import LineString, Polygon
++from shapely.ops import unary_union
++
++from cityusd.geom import difference_safe
++from cityusd.osm_parse import OsmWay
++from cityusd.types import LAYER_Z_M
++
++ROAD_WIDTH_M = {
++    "motorway": 22.0,
++    "trunk": 16.0,
++    "primary": 12.0,
++    "secondary": 9.0,
++    "tertiary": 7.0,
++    "residential": 6.0,
++    "service": 4.0,
++    "footway": 2.0,
++    "path": 2.0,
++    "default": 5.0,
++}
++ROAD_RANK = [
++    "motorway",
++    "trunk",
++    "primary",
++    "secondary",
++    "tertiary",
++    "residential",
++    "service",
++    "footway",
++    "path",
++]
++
++NON_MOTOR_HIGHWAYS = frozenset({"footway", "path", "steps", "pedestrian"})
++
++MARKING_BUFFER_M = 0.08
++MARKING_Z_M = LAYER_Z_M["roads"] + 0.01
++DOUBLE_YELLOW_SEP_M = 0.18
++ARROW_LENGTH_M = 2.0
++ARROW_WIDTH_M = 0.8
++ARROW_SETBACK_M = 8.0
++SIGN_LATERAL_EXTRA_M = 0.6
++_MIN_OVERLAP_AREA_M2 = 1e-6
++
++
++def way_width_m(tags: dict[str, str]) -> float:
++    raw_width = tags.get("width")
++    if raw_width is not None:
++        parsed = _parse_float(raw_width)
++        if parsed is not None:
++            return parsed
++    raw_lanes = tags.get("lanes")
++    if raw_lanes is not None:
++        parsed = _parse_float(raw_lanes)
++        if parsed is not None:
++            return parsed * 3.5
++    hwy = tags.get("highway", "")
++    return ROAD_WIDTH_M.get(hwy, ROAD_WIDTH_M["default"])
++
++
++def is_motor_highway(tags: dict[str, str]) -> bool:
++    """True if highway set and not footway/path/steps/pedestrian."""
++    hwy = tags.get("highway")
++    if not hwy:
++        return False
++    return hwy not in NON_MOTOR_HIGHWAYS
++
++
++def build_road_polygons(ways: list[OsmWay]) -> list[tuple[OsmWay, object]]:
++    """LineString buffer by half-width; skip <2 coords."""
++    out: list[tuple[OsmWay, object]] = []
++    for way in ways:
++        if way.coords_m is None or len(way.coords_m) < 2:
++            continue
++        width = way_width_m(way.tags)
++        if width <= 0:
++            continue
++        line = LineString(way.coords_m)
++        if line.is_empty or line.length == 0:
++            continue
++        poly = line.buffer(width / 2.0)
++        if poly is None or poly.is_empty:
++            continue
++        out.append((way, poly))
++    return out
++
++
++def subtract_road_hierarchy(
++    buffered: list[tuple[OsmWay, object]],
++) -> list[tuple[OsmWay, object]]:
++    """Higher rank cuts lower rank (spec §6.4.1). Junction: unary_union of overlaps as extra 'junction' poly with tag highway=junction."""
++    if not buffered:
++        return []
++
++    originals = list(buffered)
++    overlaps: list = []
++    n = len(originals)
++    for i in range(n):
++        _way_i, geom_i = originals[i]
++        if geom_i is None or getattr(geom_i, "is_empty", True):
++            continue
++        for j in range(i + 1, n):
++            _way_j, geom_j = originals[j]
++            if geom_j is None or getattr(geom_j, "is_empty", True):
++                continue
++            try:
++                inter = geom_i.intersection(geom_j)
++            except Exception:
++                continue
++            if inter is None or inter.is_empty:
++                continue
++            if getattr(inter, "area", 0.0) < _MIN_OVERLAP_AREA_M2:
++                continue
++            overlaps.append(inter)
++
++    result: list[tuple[OsmWay, object]] = []
++    for way, geom in originals:
++        cut = geom
++        rank = _road_rank(way.tags)
++        for other_way, other_geom in originals:
++            if other_way is way:
++                continue
++            if other_geom is None or getattr(other_geom, "is_empty", True):
++                continue
++            if _road_rank(other_way.tags) < rank:
++                cut = difference_safe(cut, other_geom)
++        result.append((way, cut))
++
++    if overlaps:
++        junction_geom = unary_union(overlaps)
++        if junction_geom is not None and not junction_geom.is_empty:
++            jway = OsmWay(
++                osm_id=0,
++                tags={"highway": "junction"},
++                coords_m=_coords_from_geom(junction_geom),
++                closed=True,
++            )
++            result.append((jway, junction_geom))
++    return result
++
++
++def marking_kind(tags: dict[str, str], width_m: float) -> dict:
++    """Return {center, lane, edge} per spec table."""
++    hwy = tags.get("highway", "")
++    if hwy in ("motorway", "trunk", "primary"):
++        return {
++            "center": "double_yellow_solid",
++            "lane": "white_dash",
++            "edge": "white_solid",
++        }
++    if hwy == "secondary":
++        center = "double_yellow_solid" if width_m >= 9 else "single_yellow_solid"
++        return {"center": center, "lane": "white_dash", "edge": "white_solid"}
++    if hwy == "tertiary":
++        lane = "white_dash" if width_m >= 8 else "none"
++        return {"center": "single_yellow_dash", "lane": lane, "edge": "none"}
++    if hwy == "residential":
++        center = "single_white_dash" if width_m >= 6 else "none"
++        return {"center": center, "lane": "none", "edge": "none"}
++    return {"center": "none", "lane": "none", "edge": "none"}
++
++
++def offset_polylines(coords_m, width_m) -> dict:
++    """Centerline plus left/right edge lines for marking meshes (shapely parallel_offset)."""
++    empty = {"center": None, "left": None, "right": None}
++    if coords_m is None or len(coords_m) < 2:
++        return empty
++    line = LineString(coords_m)
++    if line.is_empty:
++        return {"center": line, "left": line, "right": line}
++    half = float(width_m) / 2.0
++    left = _parallel_offset(line, half, "left")
++    right = _parallel_offset(line, half, "right")
++    return {"center": line, "left": left, "right": right}
++
++
++def marking_strip_polygons(coords_m, tags: dict[str, str], width_m: Optional[float] = None) -> list[dict]:
++    """Thin LineString.buffer(0.08) marking strips. z = roads + 0.01 m."""
++    if coords_m is None or len(coords_m) < 2:
++        return []
++    if width_m is None:
++        width_m = way_width_m(tags)
++    kind = marking_kind(tags, width_m)
++    offsets = offset_polylines(coords_m, width_m)
++    strips: list[dict] = []
++
++    center_style = kind["center"]
++    if center_style == "double_yellow_solid":
++        center = offsets["center"]
++        if center is not None and not center.is_empty:
++            half = DOUBLE_YELLOW_SEP_M / 2.0
++            for side in ("left", "right"):
++                line = _parallel_offset(center, half, side)
++                strips.extend(_buffer_marking(line, "center", center_style))
++    elif center_style != "none":
++        strips.extend(_buffer_marking(offsets["center"], "center", center_style))
++
++    if kind["lane"] == "white_dash" and width_m > 0:
++        center = offsets["center"]
++        if center is not None and not center.is_empty:
++            quarter = float(width_m) / 4.0
++            for side in ("left", "right"):
++                line = _parallel_offset(center, quarter, side)
++                strips.extend(_buffer_marking(line, "lane", "white_dash"))
++
++    if kind["edge"] == "white_solid":
++        strips.extend(_buffer_marking(offsets["left"], "edge", "white_solid"))
++        strips.extend(_buffer_marking(offsets["right"], "edge", "white_solid"))
++
++    return strips
++
++
++def junction_arrows(buffered, graph_degree: dict) -> list:
++    """For nodes with degree>=3, place a 2.5m arrow poly on each approach 8m before the node, pointing into junction."""
++    # One-way approach triangles only — never a two-way opposing-arrow texture.
++    arrows: list[dict] = []
++    if not buffered or not graph_degree:
++        return arrows
++
++    seen: set[tuple] = set()
++    for way, _geom in buffered:
++        if way.tags.get("highway") == "junction":
++            continue
++        if not is_motor_highway(way.tags):
++            continue
++        if way.closed:
++            continue
++        coords = way.coords_m
++        if coords is None or len(coords) < 2:
++            continue
++        n = len(coords)
++        for i, xy in enumerate(coords):
++            if _degree_at(graph_degree, xy) < 3:
++                continue
++            approaches: list[int] = []
++            if i > 0:
++                approaches.append(-1)
++            if i < n - 1:
++                approaches.append(1)
++            for step in approaches:
++                placed = _arrow_on_approach(coords, i, step)
++                if placed is None:
++                    continue
++                poly, center_xy, yaw = placed
++                key = (round(center_xy[0], 3), round(center_xy[1], 3), round(yaw, 4))
++                if key in seen:
++                    continue
++                seen.add(key)
++                arrows.append(
++                    {
++                        "poly": poly,
++                        "xy": center_xy,
++                        "yaw_rad": yaw,
++                        "osm_id": way.osm_id,
++                    }
++                )
++    return arrows
++
++
++def sign_placements(ways: list[OsmWay], spacing_m: float = 100.0) -> list[dict]:
++    """For motor highways with name/name:zh/name:en, samples along line at spacing, offset to the right by width/2+0.6m. Each dict: {xy, yaw_rad, name}."""
++    placements: list[dict] = []
++    if not ways or spacing_m <= 0:
++        return placements
++    for way in ways:
++        if not is_motor_highway(way.tags):
++            continue
++        name = way.tags.get("name") or way.tags.get("name:zh") or way.tags.get("name:en")
++        if not name:
++            continue
++        if way.coords_m is None or len(way.coords_m) < 2:
++            continue
++        line = LineString(way.coords_m)
++        if line.is_empty or line.length <= 0:
++            continue
++        width = way_width_m(way.tags)
++        lateral = width / 2.0 + SIGN_LATERAL_EXTRA_M
++        for dist in _sample_distances(line.length, spacing_m):
++            xy, yaw = _point_and_yaw(line, dist)
++            if xy is None:
++                continue
++            dx, dy = math.cos(yaw), math.sin(yaw)
++            # Right side of travel direction: (dy, -dx)
++            rx, ry = xy[0] + dy * lateral, xy[1] - dx * lateral
++            placements.append({"xy": (rx, ry), "yaw_rad": yaw, "name": name})
++    return placements
++
++
++def _parse_float(value: str) -> Optional[float]:
++    try:
++        return float(value)
++    except (TypeError, ValueError):
++        return None
++
++
++def _road_rank(tags: dict[str, str]) -> int:
++    hwy = tags.get("highway", "")
++    try:
++        return ROAD_RANK.index(hwy)
++    except ValueError:
++        return len(ROAD_RANK)
++
++
++def _coords_from_geom(geom) -> list[tuple[float, float]]:
++    if geom is None or geom.is_empty:
++        return []
++    poly = None
++    geom_type = getattr(geom, "geom_type", "")
++    if geom_type == "Polygon":
++        poly = geom
++    elif geom_type == "MultiPolygon" and len(geom.geoms) > 0:
++        poly = max(geom.geoms, key=lambda g: g.area)
++    if poly is None:
++        return []
++    return [(float(x), float(y)) for x, y in poly.exterior.coords]
++
++
++def _parallel_offset(line: LineString, distance: float, side: str):
++    if line is None or line.is_empty or distance == 0:
++        return line
++    try:
++        return line.parallel_offset(distance, side)
++    except Exception:
++        sign = 1.0 if side == "left" else -1.0
++        try:
++            return line.offset_curve(sign * distance)
++        except Exception:
++            return line
++
++
++def _buffer_marking(line, role: str, style: str) -> list[dict]:
++    if line is None or getattr(line, "is_empty", True):
++        return []
++    try:
++        poly = line.buffer(MARKING_BUFFER_M)
++    except Exception:
++        return []
++    if poly is None or poly.is_empty:
++        return []
++    return [{"role": role, "style": style, "geom": poly, "z_m": MARKING_Z_M}]
++
++
++def _node_key(xy) -> tuple[float, float]:
++    return (round(float(xy[0]), 3), round(float(xy[1]), 3))
++
++
++def _degree_at(graph_degree: dict, xy) -> int:
++    if xy in graph_degree:
++        return int(graph_degree[xy])
++    key = _node_key(xy)
++    if key in graph_degree:
++        return int(graph_degree[key])
++    for node, deg in graph_degree.items():
++        try:
++            if abs(float(node[0]) - float(xy[0])) < 1e-3 and abs(float(node[1]) - float(xy[1])) < 1e-3:
++                return int(deg)
++        except (TypeError, IndexError):
++            continue
++    return 0
++
++
++def _walk_along(coords: list[tuple[float, float]], start: int, step: int, distance: float):
++    remaining = distance
++    x, y = float(coords[start][0]), float(coords[start][1])
++    i = start
++    n = len(coords)
++    while remaining > 0:
++        nxt = i + step
++        if nxt < 0 or nxt >= n:
++            return None
++        x2, y2 = float(coords[nxt][0]), float(coords[nxt][1])
++        seg = math.hypot(x2 - x, y2 - y)
++        if seg < 1e-12:
++            i = nxt
++            continue
++        if seg >= remaining:
++            t = remaining / seg
++            return (x + (x2 - x) * t, y + (y2 - y) * t)
++        remaining -= seg
++        x, y = x2, y2
++        i = nxt
++    return (x, y)
++
++
++def _arrow_on_approach(coords, node_i: int, step: int):
++    placed = _walk_along(coords, node_i, step, ARROW_SETBACK_M)
++    if placed is None:
++        return None
++    nx, ny = float(coords[node_i][0]), float(coords[node_i][1])
++    px, py = placed
++    dx, dy = nx - px, ny - py
++    length = math.hypot(dx, dy)
++    if length < 1e-9:
++        return None
++    ux, uy = dx / length, dy / length
++    yaw = math.atan2(uy, ux)
++    half_l = ARROW_LENGTH_M / 2.0
++    half_w = ARROW_WIDTH_M / 2.0
++    tip = (px + ux * half_l, py + uy * half_l)
++    bx, by = px - ux * half_l, py - uy * half_l
++    rx, ry = -uy, ux
++    p1 = (bx + rx * half_w, by + ry * half_w)
++    p2 = (bx - rx * half_w, by - ry * half_w)
++    poly = Polygon([tip, p1, p2, tip])
++    if poly.is_empty or not poly.is_valid:
++        return None
++    return poly, (px, py), yaw
++
++
++def _sample_distances(length: float, spacing_m: float) -> Iterable[float]:
++    if length <= spacing_m:
++        return [length * 0.5]
++    distances = []
++    d = spacing_m
++    while d < length:
++        distances.append(d)
++        d += spacing_m
++    return distances
++
++
++def _point_and_yaw(line: LineString, dist: float):
++    if dist < 0 or dist > line.length:
++        if dist > line.length:
++            dist = line.length
++        elif dist < 0:
++            dist = 0.0
++    pt = line.interpolate(dist)
++    delta = min(0.5, max(line.length * 0.01, 1e-3))
++    a = line.interpolate(max(0.0, dist - delta))
++    b = line.interpolate(min(line.length, dist + delta))
++    dx, dy = b.x - a.x, b.y - a.y
++    if math.hypot(dx, dy) < 1e-12:
++        return None, None
++    yaw = math.atan2(dy, dx)
++    return (float(pt.x), float(pt.y)), yaw
++++ b/tests/test_roads.py
++from cityusd.roads import way_width_m, marking_kind, is_motor_highway
++
++
++def test_width_lanes_override():
++    assert way_width_m({"highway": "residential", "lanes": "2"}) == 7.0
++
++
++def test_primary_double_yellow():
++    k = marking_kind({"highway": "primary"}, 12.0)
++    assert k["center"] == "double_yellow_solid"
++
++
++def test_footway_not_motor():
++    assert is_motor_highway({"highway": "footway"}) is False

@@ -1,0 +1,27 @@
+# Taipei UE Scene Package — date-stamped scene id
+schema_version: "0.2"
+extends:
+  - taibei_ue.pipeline.yaml
+
+scene:
+  id: taibei_ue_20260831
+  title: "Taipei UE"
+
+inputs:
+  osm:
+    path: data/osm/taibei.osm.pbf
+    clip_to_extent: true
+  dem:
+    path: data/dem/cliptb.tif
+    optional: false
+  ortho:
+    path: data/imagery/taibei.tif
+    optional: true
+  asset_library:
+    path: data/assets/AssetLibrary
+  scene_description:
+    path: data/assets/AssetLibrary/examples/demo_overlay_full.json
+    optional: true
+
+output:
+  dir: output/ScenePackages

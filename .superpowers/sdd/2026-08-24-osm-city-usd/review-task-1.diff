@@ -1,0 +1,158 @@
+# Review package: Task 1 (no git; full file contents as added)
+
+## Commits
+none (no git repository)
+
+## Files changed
+E:\UEWork\ROS2Test\CityUsd\tools\requirements.txt
+E:\UEWork\ROS2Test\CityUsd\tools\cityusd\__init__.py
+E:\UEWork\ROS2Test\CityUsd\tools\cityusd\types.py
+E:\UEWork\ROS2Test\CityUsd\tools\cityusd\crs.py
+E:\UEWork\ROS2Test\CityUsd\tests\test_crs.py
+
+## Diff
+
+--- a/dev/null
++++ b/tools/requirements.txt
++numpy>=1.24
++shapely>=2.0
++mapbox-earcut>=1.0
++osmium>=3.6
++rasterio>=1.3
++pyproj>=3.6
++Pillow>=10.0
++usd-core>=23.11
++pytest>=7.0
+
+--- a/dev/null
++++ b/tools/cityusd/__init__.py
+
+--- a/dev/null
++++ b/tools/cityusd/types.py
++from dataclasses import dataclass
++from typing import Optional, Tuple
++
++
++@dataclass(frozen=True)
++class Origin:
++    lon: float
++    lat: float
++    height_m: float
++    epsg: int  # e.g. 32651
++
++
++@dataclass(frozen=True)
++class ExtentM:
++    west: float   # local meters, min X
++    south: float  # min Y
++    east: float   # max X
++    north: float  # max Y
++
++    @property
++    def width(self) -> float:
++        return self.east - self.west
++
++    @property
++    def height(self) -> float:
++        return self.north - self.south
++
++
++@dataclass
++class RasterMeta:
++    size_px: Tuple[int, int]
++    zmin_m: Optional[float]
++    zmax_m: Optional[float]
++    origin: Origin
++    utm_origin: Tuple[float, float]
++    extent_m: ExtentM
++    meters_per_pixel: Tuple[float, float]
++    crs_epsg: int
++    range_source: str  # "dem" | "osm_bbox"
++
++
++LAYER_Z_M = {"water": -0.02, "vegetation": 0.05, "roads": 0.08, "buildings": 0.04}
++CM_PER_M = 100.0
+
+--- a/dev/null
++++ b/tools/cityusd/crs.py
++from __future__ import annotations
++
++from typing import Tuple
++
++from pyproj import Transformer
++
++from cityusd.types import ExtentM, Origin
++
++
++def utm_epsg(lon: float, lat: float) -> int:
++    zone = int((lon + 180.0) / 6.0) + 1
++    return (32700 if lat < 0 else 32600) + zone
++
++
++def _wgs84_to_utm(lon: float, lat: float, epsg: int) -> Tuple[float, float]:
++    transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
++    east, north = transformer.transform(lon, lat)
++    return east, north
++
++
++def _utm_to_wgs84(east: float, north: float, epsg: int) -> Tuple[float, float]:
++    transformer = Transformer.from_crs(f"EPSG:{epsg}", "EPSG:4326", always_xy=True)
++    lon, lat = transformer.transform(east, north)
++    return lon, lat
++
++
++def make_origin(lon: float, lat: float, height_m: float = 0.0) -> Origin:
++    epsg = utm_epsg(lon, lat)
++    return Origin(lon=lon, lat=lat, height_m=height_m, epsg=epsg)
++
++
++def lonlat_to_local(lon: float, lat: float, origin: Origin) -> Tuple[float, float]:
++    east, north = _wgs84_to_utm(lon, lat, origin.epsg)
++    origin_east, origin_north = _wgs84_to_utm(origin.lon, origin.lat, origin.epsg)
++    return east - origin_east, north - origin_north
++
++
++def local_to_lonlat(x_m: float, y_m: float, origin: Origin) -> Tuple[float, float]:
++    origin_east, origin_north = _wgs84_to_utm(origin.lon, origin.lat, origin.epsg)
++    return _utm_to_wgs84(origin_east + x_m, origin_north + y_m, origin.epsg)
++
++
++def extent_from_lonlat_bbox(
++    west: float,
++    south: float,
++    east: float,
++    north: float,
++    origin: Origin,
++) -> ExtentM:
++    corners = [
++        lonlat_to_local(west, south, origin),
++        lonlat_to_local(east, south, origin),
++        lonlat_to_local(west, north, origin),
++        lonlat_to_local(east, north, origin),
++    ]
++    xs = [c[0] for c in corners]
++    ys = [c[1] for c in corners]
++    return ExtentM(west=min(xs), south=min(ys), east=max(xs), north=max(ys))
+
+--- a/dev/null
++++ b/tests/test_crs.py
++# tests/test_crs.py
++from cityusd.crs import lonlat_to_local, local_to_lonlat, make_origin, utm_epsg
++
++
++def test_taipei_epsg():
++    assert utm_epsg(121.53296235, 25.04756678) == 32651
++
++
++def test_origin_is_zero():
++    o = make_origin(121.53296235, 25.04756678)
++    x, y = lonlat_to_local(o.lon, o.lat, o)
++    assert abs(x) < 1e-6 and abs(y) < 1e-6
++
++
++def test_roundtrip():
++    o = make_origin(121.53296235, 25.04756678)
++    lon, lat = 121.54, 25.05
++    x, y = lonlat_to_local(lon, lat, o)
++    lon2, lat2 = local_to_lonlat(x, y, o)
++    assert abs(lon - lon2) < 1e-7 and abs(lat - lat2) < 1e-7

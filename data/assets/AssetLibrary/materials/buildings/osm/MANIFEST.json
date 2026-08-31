@@ -1,0 +1,154 @@
+{
+  "osm_pack": {
+    "facades": {
+      "low": [
+        "buildings_facade_low_00.jpg",
+        "buildings_facade_low_01.jpg",
+        "buildings_facade_low_02.jpg",
+        "buildings_facade_low_03.jpg",
+        "buildings_facade_low_04.jpg",
+        "buildings_facade_low_05.jpg",
+        "buildings_facade_low_06.jpg",
+        "buildings_facade_low_07.jpg",
+        "buildings_facade_low_08.jpg",
+        "buildings_facade_low_09.jpg",
+        "buildings_facade_low_10.jpg",
+        "buildings_facade_low_11.jpg",
+        "buildings_facade_low_12.jpg",
+        "buildings_facade_low_13.jpg",
+        "buildings_facade_low_14.jpg",
+        "buildings_facade_low_15.jpg"
+      ],
+      "mid": [
+        "buildings_facade_mid_00.jpg",
+        "buildings_facade_mid_01.jpg",
+        "buildings_facade_mid_02.jpg",
+        "buildings_facade_mid_03.jpg",
+        "buildings_facade_mid_04.jpg",
+        "buildings_facade_mid_05.jpg",
+        "buildings_facade_mid_06.jpg",
+        "buildings_facade_mid_07.jpg",
+        "buildings_facade_mid_08.jpg",
+        "buildings_facade_mid_09.jpg",
+        "buildings_facade_mid_10.jpg",
+        "buildings_facade_mid_11.jpg",
+        "buildings_facade_mid_12.jpg",
+        "buildings_facade_mid_13.jpg",
+        "buildings_facade_mid_14.jpg",
+        "buildings_facade_mid_15.jpg"
+      ],
+      "high": [
+        "buildings_facade_high_00.jpg",
+        "buildings_facade_high_01.jpg",
+        "buildings_facade_high_02.jpg",
+        "buildings_facade_high_03.jpg",
+        "buildings_facade_high_04.jpg",
+        "buildings_facade_high_05.jpg",
+        "buildings_facade_high_06.jpg",
+        "buildings_facade_high_07.jpg",
+        "buildings_facade_high_08.jpg",
+        "buildings_facade_high_09.jpg",
+        "buildings_facade_high_10.jpg",
+        "buildings_facade_high_11.jpg",
+        "buildings_facade_high_12.jpg",
+        "buildings_facade_high_13.jpg",
+        "buildings_facade_high_14.jpg",
+        "buildings_facade_high_15.jpg"
+      ],
+      "tower": [
+        "buildings_facade_tower_00.jpg",
+        "buildings_facade_tower_01.jpg",
+        "buildings_facade_tower_02.jpg",
+        "buildings_facade_tower_03.jpg",
+        "buildings_facade_tower_04.jpg",
+        "buildings_facade_tower_05.jpg",
+        "buildings_facade_tower_06.jpg",
+        "buildings_facade_tower_07.jpg",
+        "buildings_facade_tower_08.jpg",
+        "buildings_facade_tower_09.jpg",
+        "buildings_facade_tower_10.jpg",
+        "buildings_facade_tower_11.jpg",
+        "buildings_facade_tower_12.jpg",
+        "buildings_facade_tower_13.jpg",
+        "buildings_facade_tower_14.jpg",
+        "buildings_facade_tower_15.jpg"
+      ]
+    },
+    "roofs": [
+      {
+        "file": "buildings_roof_00.jpg",
+        "src": "materials\\buildings\\cityengine\\roofs\\acg_roofingtiles013a.jpg",
+        "role": "slate/tile"
+      },
+      {
+        "file": "buildings_roof_01.jpg",
+        "src": "materials\\buildings\\cityengine\\roofs\\acg_roofingtiles001.jpg",
+        "role": "red clay tile"
+      },
+      {
+        "file": "buildings_roof_02.jpg",
+        "src": "materials\\buildings\\cityengine\\roofs\\acg_roofingtiles012a.jpg",
+        "role": "brown clay tile"
+      },
+      {
+        "file": "buildings_roof_03.jpg",
+        "src": "materials\\buildings\\cityengine\\roofs\\acg_roofingtiles015b.jpg",
+        "role": "metal/浪板"
+      },
+      {
+        "file": "buildings_roof_04.jpg",
+        "src": "materials\\buildings\\cityengine\\roofs\\acg_thatchedroof001a.jpg",
+        "role": "thatch/rural"
+      },
+      {
+        "file": "buildings_roof_05.jpg",
+        "src": "materials\\buildings\\cityengine\\roofs\\acg_roofingtiles013d.jpg",
+        "role": "grey tile mix"
+      }
+    ]
+  },
+  "removed": [],
+  "road_keep": [
+    "asphalt.jpg",
+    "cement.jpg",
+    "centerline_double_yellow.jpg",
+    "centerline_single_white.jpg",
+    "county.jpg",
+    "dirt.jpg",
+    "expressway.jpg",
+    "gravel.jpg",
+    "highway.jpg",
+    "lanes_2.jpg",
+    "lanes_3.jpg",
+    "lanes_4.jpg",
+    "lanes_5.jpg",
+    "lanes_oneway_2.jpg",
+    "lanes_oneway_3.jpg",
+    "lanes_oneway_4.jpg",
+    "lanes_oneway_5.jpg",
+    "marking_arrow_all.jpg",
+    "marking_arrow_left.jpg",
+    "marking_arrow_right.jpg",
+    "marking_arrow_sides.jpg",
+    "marking_arrow_straight.jpg",
+    "marking_arrow_straight_left.jpg",
+    "marking_arrow_straight_right.jpg",
+    "marking_arrow_three.jpg",
+    "marking_arrow_uturn.jpg",
+    "marking_stopline.jpg",
+    "marking_zebra.jpg",
+    "national.jpg",
+    "path.jpg",
+    "pavement.jpg",
+    "provincial.jpg",
+    "railway.jpg",
+    "roads_asphalt.jpg",
+    "roads_centerline_double_yellow.jpg",
+    "roads_centerline_single_white.jpg",
+    "roads_lanes_4.jpg",
+    "roads_pavement.jpg",
+    "roads_stop_arrows_all.jpg",
+    "roads_stop_arrows_sides.jpg"
+  ],
+  "notes": "Use materials/buildings/osm/* and materials/roads/* with osm_to_usd.ensure_textures"
+}

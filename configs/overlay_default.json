@@ -1,0 +1,10 @@
+{
+  "skip_if_no_description": true,
+  "outputs": {
+    "equipment": "overlay/equipment.usda",
+    "infrastructure": "overlay/infrastructure.usda",
+    "obstacles_static": "overlay/obstacles_static.usda",
+    "obstacles_dynamic": "overlay/obstacles_dynamic.usda",
+    "props": "overlay/props.usda"
+  }
+}

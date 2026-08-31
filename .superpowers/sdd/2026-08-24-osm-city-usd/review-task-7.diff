@@ -1,0 +1,94 @@
++++ tools\cityusd\buildings.py
++from __future__ import annotations
++
++import math
++import re
++from typing import Any
++
++from shapely.geometry import Polygon
++
++from cityusd.geom import difference_safe
++from cityusd.osm_parse import OsmWay
++
++_HEIGHT_RE = re.compile(r"^\s*([\d.]+)\s*(?:m|meters?)?\s*$", re.IGNORECASE)
++
++LOD_LEVELS = [
++    {"name": "LOD0", "cell_size_m": 200.0, "switch_distance_m": 0.0, "merge_materials": False},
++    {"name": "LOD1", "cell_size_m": 800.0, "switch_distance_m": 1500.0, "merge_materials": False},
++    {"name": "LOD2", "cell_size_m": 3200.0, "switch_distance_m": 6000.0, "merge_materials": True},
++]
++
++
++def building_height_m(tags: dict[str, str]) -> float:
++    """height tag → else levels*3.0 → else 10.0"""
++    raw_height = tags.get("height")
++    if raw_height:
++        match = _HEIGHT_RE.match(raw_height.strip())
++        if match:
++            return float(match.group(1))
++
++    raw_levels = tags.get("building:levels")
++    if raw_levels:
++        try:
++            return float(raw_levels.strip()) * 3.0
++        except ValueError:
++            pass
++
++    return 10.0
++
++
++def footprint_after_roads(way: OsmWay, roads_union) -> object | None:
++    """Polygon difference; skip if empty."""
++    if not way.closed or len(way.coords_m) < 3:
++        return None
++
++    coords = list(way.coords_m)
++    if coords[0] != coords[-1]:
++        coords.append(coords[0])
++
++    footprint = Polygon(coords)
++    if footprint.is_empty or not footprint.is_valid:
++        return None
++
++    if roads_union is None or roads_union.is_empty:
++        return footprint
++
++    try:
++        cut = footprint.difference(roads_union)
++    except Exception:
++        cut = difference_safe(footprint, roads_union)
++
++    if cut is None or cut.is_empty:
++        return None
++    return cut
++
++
++def lod_cell_key(x_m: float, y_m: float, cell_m: float) -> tuple[int, int]:
++    return (math.floor(x_m / cell_m), math.floor(y_m / cell_m))
++
++
++def group_buildings_for_lod(items: list, cell_m: float) -> dict[tuple[int, int], list]:
++    """Group by footprint centroid."""
++    groups: dict[tuple[int, int], list[Any]] = {}
++    for item in items:
++        footprint = item.get("footprint") if isinstance(item, dict) else getattr(item, "footprint", None)
++        if footprint is None or footprint.is_empty:
++            continue
++        centroid = footprint.centroid
++        key = lod_cell_key(centroid.x, centroid.y, cell_m)
++        groups.setdefault(key, []).append(item)
++    return groups
++++ tests\test_buildings.py
++from cityusd.buildings import building_height_m, lod_cell_key
++
++
++def test_levels():
++    assert building_height_m({"building": "yes", "building:levels": "3"}) == 9.0
++
++
++def test_default_10():
++    assert building_height_m({"building": "yes"}) == 10.0
++
++
++def test_cell():
++    assert lod_cell_key(250.0, 50.0, 200.0) == (1, 0)

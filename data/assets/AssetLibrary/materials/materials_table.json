@@ -1,0 +1,2366 @@
+{
+  "Building_Facade_Low": {
+    "albedo": "materials/buildings/facade_low.jpg",
+    "roughness": 0.9,
+    "label": "外立面·低层(兼容)",
+    "part": "facade",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "Building_Facade_Mid": {
+    "albedo": "materials/buildings/facade_mid.jpg",
+    "roughness": 0.9,
+    "label": "外立面·多层(兼容)",
+    "part": "facade",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "Vegetation_Grass": {
+    "albedo": "materials/vegetation/grass.png",
+    "roughness": 1.0
+  },
+  "Vegetation_Forest": {
+    "albedo": "materials/vegetation/forest.jpg",
+    "roughness": 1.0
+  },
+  "Water_Surface": {
+    "albedo": "materials/water/water_surface.png",
+    "roughness": 0.15,
+    "opacity": 0.85
+  },
+  "Terrain_Ground": {
+    "albedo": "materials/terrain/ground_dirt.jpg",
+    "roughness": 1.0
+  },
+  "Road_Asphalt": {
+    "albedo": "materials/roads/asphalt.jpg",
+    "roughness": 0.85,
+    "label": "柏油路"
+  },
+  "Road_Cement": {
+    "albedo": "materials/roads/cement.jpg",
+    "roughness": 0.9,
+    "label": "水泥路"
+  },
+  "Road_Dirt": {
+    "albedo": "materials/roads/dirt.jpg",
+    "roughness": 1.0,
+    "label": "土路"
+  },
+  "Road_Path": {
+    "albedo": "materials/roads/path.jpg",
+    "roughness": 0.95,
+    "label": "小路"
+  },
+  "Road_Railway": {
+    "albedo": "materials/roads/railway.jpg",
+    "roughness": 0.8,
+    "label": "铁路"
+  },
+  "Road_Pavement": {
+    "albedo": "materials/roads/pavement.jpg",
+    "roughness": 0.9,
+    "label": "人行铺装"
+  },
+  "Road_Highway": {
+    "albedo": "materials/roads/highway.jpg",
+    "roughness": 0.85,
+    "label": "高速公路"
+  },
+  "Road_Expressway": {
+    "albedo": "materials/roads/expressway.jpg",
+    "roughness": 0.85,
+    "label": "城市快车道"
+  },
+  "Road_National": {
+    "albedo": "materials/roads/national.jpg",
+    "roughness": 0.85,
+    "label": "国道"
+  },
+  "Road_Lanes_2": {
+    "albedo": "materials/roads/lanes_2.jpg",
+    "roughness": 0.85,
+    "label": "双车道(双边)"
+  },
+  "Road_Lanes_3": {
+    "albedo": "materials/roads/lanes_3.jpg",
+    "roughness": 0.85,
+    "label": "三车道(双边)"
+  },
+  "Road_Lanes_4": {
+    "albedo": "materials/roads/lanes_4.jpg",
+    "roughness": 0.85,
+    "label": "四车道(双边)"
+  },
+  "Road_Lanes_5": {
+    "albedo": "materials/roads/lanes_5.jpg",
+    "roughness": 0.85,
+    "label": "五车道(双边)"
+  },
+  "Road_Marking_Zebra": {
+    "albedo": "materials/roads/marking_zebra.jpg",
+    "roughness": 0.85,
+    "label": "斑马线"
+  },
+  "Road_Marking_Arrow_Straight": {
+    "albedo": "materials/roads/marking_arrow_straight.jpg",
+    "roughness": 0.85,
+    "label": "直行箭头"
+  },
+  "Road_Marking_Arrow_Left": {
+    "albedo": "materials/roads/marking_arrow_left.jpg",
+    "roughness": 0.85,
+    "label": "左转箭头"
+  },
+  "Road_Marking_Arrow_Right": {
+    "albedo": "materials/roads/marking_arrow_right.jpg",
+    "roughness": 0.85,
+    "label": "右转箭头"
+  },
+  "Road_Marking_Arrow_StraightLeft": {
+    "albedo": "materials/roads/marking_arrow_straight_left.jpg",
+    "roughness": 0.85,
+    "label": "直行左转箭头"
+  },
+  "Road_Marking_Arrow_StraightRight": {
+    "albedo": "materials/roads/marking_arrow_straight_right.jpg",
+    "roughness": 0.85,
+    "label": "直行右转箭头"
+  },
+  "Road_Marking_Arrow_All": {
+    "albedo": "materials/roads/marking_arrow_all.jpg",
+    "roughness": 0.85,
+    "label": "四车道导向(含标线)"
+  },
+  "Road_Marking_Arrow_Sides": {
+    "albedo": "materials/roads/marking_arrow_sides.jpg",
+    "roughness": 0.85,
+    "label": "双车道导向(含标线)"
+  },
+  "Road_Centerline_DoubleYellow": {
+    "albedo": "materials/roads/centerline_double_yellow.jpg",
+    "roughness": 0.85,
+    "label": "双黄线"
+  },
+  "Road_Centerline_SingleWhite": {
+    "albedo": "materials/roads/centerline_single_white.jpg",
+    "roughness": 0.85,
+    "label": "单白虚线"
+  },
+  "Road_Gravel": {
+    "albedo": "materials/roads/gravel.jpg",
+    "roughness": 1.0,
+    "label": "碎石路"
+  },
+  "Road_Provincial": {
+    "albedo": "materials/roads/provincial.jpg",
+    "roughness": 0.85,
+    "label": "省道"
+  },
+  "Road_County": {
+    "albedo": "materials/roads/county.jpg",
+    "roughness": 0.85,
+    "label": "县道"
+  },
+  "Road_Lanes_Oneway_2": {
+    "albedo": "materials/roads/lanes_oneway_2.jpg",
+    "roughness": 0.85,
+    "label": "双车道(单向)"
+  },
+  "Road_Lanes_Oneway_3": {
+    "albedo": "materials/roads/lanes_oneway_3.jpg",
+    "roughness": 0.85,
+    "label": "三车道(单向)"
+  },
+  "Road_Lanes_Oneway_4": {
+    "albedo": "materials/roads/lanes_oneway_4.jpg",
+    "roughness": 0.85,
+    "label": "四车道(单向)"
+  },
+  "Road_Lanes_Oneway_5": {
+    "albedo": "materials/roads/lanes_oneway_5.jpg",
+    "roughness": 0.85,
+    "label": "五车道(单向)"
+  },
+  "Road_Marking_StopLine": {
+    "albedo": "materials/roads/marking_stopline.jpg",
+    "roughness": 0.85,
+    "label": "停止线"
+  },
+  "Road_Marking_Arrow_UTurn": {
+    "albedo": "materials/roads/marking_arrow_uturn.jpg",
+    "roughness": 0.85,
+    "label": "掉头箭头"
+  },
+  "Road_Marking_Arrow_Three": {
+    "albedo": "materials/roads/marking_arrow_three.jpg",
+    "roughness": 0.85,
+    "label": "三车道导向(含标线)"
+  },
+  "City_Facade_Low_apartmentwindows": {
+    "albedo": "materials/buildings/cityengine/facades/low/oga_apartmentwindows.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·低层·apartmentwindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_balconies": {
+    "albedo": "materials/buildings/cityengine/facades/low/oga_balconies.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·低层·balconies",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_windowsandbalconies": {
+    "albedo": "materials/buildings/cityengine/facades/low/oga_windowsandbalconies.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·低层·windowsandbalconies",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_verticlebrownbricks": {
+    "albedo": "materials/buildings/cityengine/facades/low/oga_verticlebrownbricks.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·低层·verticlebrownbricks",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_windowsandpipes": {
+    "albedo": "materials/buildings/cityengine/facades/low/oga_windowsandpipes.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·低层·windowsandpipes",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_greyrectangles": {
+    "albedo": "materials/buildings/cityengine/facades/low/oga_greyrectangles.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·低层·greyrectangles",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Mid_alternatingwindows": {
+    "albedo": "materials/buildings/cityengine/facades/mid/oga_alternatingwindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·多层·alternatingwindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_greywindowswithblinds": {
+    "albedo": "materials/buildings/cityengine/facades/mid/oga_greywindowswithblinds_mid.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·多层·greywindowswithblinds",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_bluewindows": {
+    "albedo": "materials/buildings/cityengine/facades/mid/oga_bluewindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·多层·bluewindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_squareishwindows": {
+    "albedo": "materials/buildings/cityengine/facades/mid/oga_squareishwindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·多层·squareishwindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_tallthinwindows": {
+    "albedo": "materials/buildings/cityengine/facades/mid/oga_tallthinwindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·多层·tallthinwindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_bluewindowsandtiles": {
+    "albedo": "materials/buildings/cityengine/facades/mid/oga_bluewindowsandtiles_mid.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·多层·bluewindowsandtiles",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_trianglewindows": {
+    "albedo": "materials/buildings/cityengine/facades/mid/oga_trianglewindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·多层·trianglewindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_High_officewindows": {
+    "albedo": "materials/buildings/cityengine/facades/high/oga_officewindows_high.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·高层·officewindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_greydeepwindows": {
+    "albedo": "materials/buildings/cityengine/facades/high/oga_greydeepwindows_high.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·高层·greydeepwindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_darkgreywindowspaleblocks": {
+    "albedo": "materials/buildings/cityengine/facades/high/oga_darkgreywindowspaleblocks_high.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·高层·darkgreywindowspaleblocks",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_blueishwindowsblackspaces": {
+    "albedo": "materials/buildings/cityengine/facades/high/oga_blueishwindowsblackspaces_high.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·高层·blueishwindowsblackspaces",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_threelines": {
+    "albedo": "materials/buildings/cityengine/facades/high/oga_threelines_high.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·高层·threelines",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_alternatingwindows": {
+    "albedo": "materials/buildings/cityengine/facades/high/oga_alternatingwindows_high.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·高层·alternatingwindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_Tower_lightanddarkblue": {
+    "albedo": "materials/buildings/cityengine/facades/tower/oga_lightanddarkblue_tower.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·超高层·lightanddarkblue",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_verticalstrips": {
+    "albedo": "materials/buildings/cityengine/facades/tower/oga_verticalstrips_tower.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·超高层·verticalstrips",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_xsupport": {
+    "albedo": "materials/buildings/cityengine/facades/tower/oga_xsupport_tower.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·超高层·xsupport",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_officewindows": {
+    "albedo": "materials/buildings/cityengine/facades/tower/oga_officewindows_tower.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·超高层·officewindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_blueishwindowsblackspaces": {
+    "albedo": "materials/buildings/cityengine/facades/tower/oga_blueishwindowsblackspaces_tower.jpg",
+    "roughness": 0.85,
+    "label": "城市立面·超高层·blueishwindowsblackspaces",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Low_Facade001": {
+    "albedo": "materials/buildings/cityengine/facades/low/acg_facade001.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·低层·Facade001",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Facade002": {
+    "albedo": "materials/buildings/cityengine/facades/low/acg_facade002.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·低层·Facade002",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Facade003": {
+    "albedo": "materials/buildings/cityengine/facades/low/acg_facade003.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·低层·Facade003",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Facade005": {
+    "albedo": "materials/buildings/cityengine/facades/low/acg_facade005.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·低层·Facade005",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Mid_Facade006": {
+    "albedo": "materials/buildings/cityengine/facades/mid/acg_facade006.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·多层·Facade006",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Facade007": {
+    "albedo": "materials/buildings/cityengine/facades/mid/acg_facade007.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·多层·Facade007",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Facade008": {
+    "albedo": "materials/buildings/cityengine/facades/mid/acg_facade008.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·多层·Facade008",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Facade009": {
+    "albedo": "materials/buildings/cityengine/facades/mid/acg_facade009.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·多层·Facade009",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Facade010": {
+    "albedo": "materials/buildings/cityengine/facades/mid/acg_facade010.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·多层·Facade010",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_High_Facade011": {
+    "albedo": "materials/buildings/cityengine/facades/high/acg_facade011.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·高层·Facade011",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_Facade012": {
+    "albedo": "materials/buildings/cityengine/facades/high/acg_facade012.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·高层·Facade012",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_Facade013": {
+    "albedo": "materials/buildings/cityengine/facades/high/acg_facade013.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·高层·Facade013",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_Facade014": {
+    "albedo": "materials/buildings/cityengine/facades/high/acg_facade014.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·高层·Facade014",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_Facade016": {
+    "albedo": "materials/buildings/cityengine/facades/high/acg_facade016.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·高层·Facade016",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_Tower_Facade017": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade017.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade017",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Facade018A": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade018a.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade018A",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Facade018B": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade018b.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade018B",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Facade019A": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade019a.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade019A",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Facade019B": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade019b.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade019B",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Facade020A": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade020a.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade020A",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Facade020B": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade020b.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade020B",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Facade020C": {
+    "albedo": "materials/buildings/cityengine/facades/tower/acg_facade020c.jpg",
+    "roughness": 0.8,
+    "label": "城市立面·超高层·Facade020C",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Mid_Urban_apartments1": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments2_2": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments2_2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments2_2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments2": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments2_side": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments2_side.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments2_side",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments4": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments4.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments4",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments5": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments5.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments5",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments6": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments6.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments6",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments7": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments7.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments7",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments8": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments8.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments8",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartments9": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartments9.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartments9",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartment_block5": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartment_block5.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartment_block5",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartment_block6": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartment_block6.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartment_block6",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartment_block7": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartment_block7.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartment_block7",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_apartment_block8": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_apartment_block8.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·apartment_block8",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Low_Urban_building_5c": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_5c.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_5c",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Mid_Urban_building_center": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_center.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_center",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_High_Urban_building_church_side1": {
+    "albedo": "materials/buildings/cityengine/facades/high/urban_building_church_side1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·高层·building_church_side1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_Urban_building_church_side_bottom1": {
+    "albedo": "materials/buildings/cityengine/facades/high/urban_building_church_side_bottom1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·高层·building_church_side_bottom1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_Tower_Urban_building_church_side_bottom2": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_church_side_bottom2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_church_side_bottom2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Urban_building_church_side_top": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_church_side_top.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_church_side_top",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Tower_Urban_building_construction": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_construction.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_construction",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Mid_Urban_building_derelict1": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_derelict1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_derelict1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Low_Urban_building_dks_1": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_dks_1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_dks_1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Mid_Urban_building_dks_2": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_dks_2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_dks_2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_building_dock": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_dock.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_dock",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Tower_Urban_building_dock2": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_dock2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_dock2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Mid_Urban_building_dock_apartments": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_dock_apartments.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_dock_apartments",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Mid_Urban_building_dock_apartments2": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_dock_apartments2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_dock_apartments2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Tower_Urban_building_empty": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_empty.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_empty",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Low_Urban_building_factory": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_factory.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_factory",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Urban_building_front2": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_front2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_front2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Urban_building_front3": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_front3.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_front3",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Urban_building_front4": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_front4.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_front4",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Urban_building_front5": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_front5.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_front5",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Low_Urban_building_front8": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_front8.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_front8",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Tower_Urban_building_garage": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_garage.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_garage",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Mid_Urban_building_house1": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_house1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_house1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Tower_Urban_building_hsp": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_hsp.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_hsp",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_High_Urban_building_h_windows": {
+    "albedo": "materials/buildings/cityengine/facades/high/urban_building_h_windows.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·高层·building_h_windows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_Low_Urban_building_jmu": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_jmu.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_jmu",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_High_Urban_building_jmu2": {
+    "albedo": "materials/buildings/cityengine/facades/high/urban_building_jmu2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·高层·building_jmu2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_High_Urban_building_l2": {
+    "albedo": "materials/buildings/cityengine/facades/high/urban_building_l2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·高层·building_l2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_Tower_Urban_building_lb1": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_lb1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_lb1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Facade_Mid_Urban_building_lh1": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_lh1.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_lh1",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_High_Urban_building_liver": {
+    "albedo": "materials/buildings/cityengine/facades/high/urban_building_liver.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·高层·building_liver",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_Facade_Low_Urban_building_mirrored": {
+    "albedo": "materials/buildings/cityengine/facades/low/urban_building_mirrored.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·低层·building_mirrored",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_Facade_Mid_Urban_building_modern": {
+    "albedo": "materials/buildings/cityengine/facades/mid/urban_building_modern.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·多层·building_modern",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_Facade_Tower_Urban_building_modern2": {
+    "albedo": "materials/buildings/cityengine/facades/tower/urban_building_modern2.jpg",
+    "roughness": 0.88,
+    "label": "城市立面·超高层·building_modern2",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Low_oga_apartmentwindows": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_oga_apartmentwindows.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·oga_apartmentwindows",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Low_oga_balconies": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_oga_balconies.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·oga_balconies",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Low_oga_greyrectangles": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_oga_greyrectangles.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·oga_greyrectangles",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Low_oga_verticlebrownbricks": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_oga_verticlebrownbricks.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·oga_verticlebrownbricks",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Low_oga_windowsandbalconies": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_oga_windowsandbalconies.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·oga_windowsandbalconies",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Low_oga_windowsandpipes": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_oga_windowsandpipes.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·oga_windowsandpipes",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Low_acg_facade001": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_acg_facade001.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·acg_facade001",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Low_acg_facade002": {
+    "albedo": "materials/buildings/cityengine/facades/low/sheet_acg_facade002.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·低层·acg_facade002",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "low",
+    "floors": "1-3",
+    "height_m": "0-10"
+  },
+  "City_FacadeSheet_Mid_oga_alternatingwindows_mid": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_oga_alternatingwindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·oga_alternatingwindows_mid",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_Mid_oga_bluewindowsandtiles_mid": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_oga_bluewindowsandtiles_mid.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·oga_bluewindowsandtiles_mid",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_Mid_oga_bluewindows_mid": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_oga_bluewindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·oga_bluewindows_mid",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_Mid_oga_greywindowswithblinds_mid": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_oga_greywindowswithblinds_mid.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·oga_greywindowswithblinds_mid",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_Mid_oga_squareishwindows_mid": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_oga_squareishwindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·oga_squareishwindows_mid",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_Mid_oga_tallthinwindows_mid": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_oga_tallthinwindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·oga_tallthinwindows_mid",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_Mid_oga_trianglewindows_mid": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_oga_trianglewindows_mid.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·oga_trianglewindows_mid",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_Mid_acg_facade006": {
+    "albedo": "materials/buildings/cityengine/facades/mid/sheet_acg_facade006.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·多层·acg_facade006",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "mid",
+    "floors": "4-8",
+    "height_m": "10-20"
+  },
+  "City_FacadeSheet_High_oga_alternatingwindows_high": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_oga_alternatingwindows_high.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·oga_alternatingwindows_high",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_High_oga_blueishwindowsblackspaces_high": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_oga_blueishwindowsblackspaces_high.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·oga_blueishwindowsblackspaces_high",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_High_oga_darkgreywindowspaleblocks_high": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_oga_darkgreywindowspaleblocks_high.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·oga_darkgreywindowspaleblocks_high",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_High_oga_greydeepwindows_high": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_oga_greydeepwindows_high.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·oga_greydeepwindows_high",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_High_oga_officewindows_high": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_oga_officewindows_high.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·oga_officewindows_high",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_High_oga_threelines_high": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_oga_threelines_high.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·oga_threelines_high",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_High_acg_facade011": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_acg_facade011.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·acg_facade011",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_High_acg_facade012": {
+    "albedo": "materials/buildings/cityengine/facades/high/sheet_acg_facade012.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·高层·acg_facade012",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "high",
+    "floors": "9-15",
+    "height_m": "20-40"
+  },
+  "City_FacadeSheet_Tower_oga_blueishwindowsblackspaces_tower": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_oga_blueishwindowsblackspaces_tower.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·oga_blueishwindowsblackspaces_tower",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Tower_oga_lightanddarkblue_tower": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_oga_lightanddarkblue_tower.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·oga_lightanddarkblue_tower",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Tower_oga_officewindows_tower": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_oga_officewindows_tower.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·oga_officewindows_tower",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Tower_oga_verticalstrips_tower": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_oga_verticalstrips_tower.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·oga_verticalstrips_tower",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Tower_oga_xsupport_tower": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_oga_xsupport_tower.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·oga_xsupport_tower",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Tower_acg_facade017": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_acg_facade017.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·acg_facade017",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Tower_acg_facade018a": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_acg_facade018a.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·acg_facade018a",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_FacadeSheet_Tower_acg_facade018b": {
+    "albedo": "materials/buildings/cityengine/facades/tower/sheet_acg_facade018b.jpg",
+    "roughness": 0.85,
+    "label": "立面图集·超高层·acg_facade018b",
+    "part": "facade",
+    "style": "cityengine",
+    "height_band": "tower",
+    "floors": "16+",
+    "height_m": "40+"
+  },
+  "City_Roof_RoofingTiles001": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles001.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles001",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles011A": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles011a.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles011A",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles011B": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles011b.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles011B",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles011C": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles011c.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles011C",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles012A": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles012a.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles012A",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles012B": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles012b.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles012B",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles012C": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles012c.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles012C",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles013A": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles013a.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles013A",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles013B": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles013b.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles013B",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles013C": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles013c.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles013C",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles013D": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles013d.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles013D",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles014A": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles014a.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles014A",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles014C": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles014c.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles014C",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles014D": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles014d.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles014D",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_RoofingTiles015B": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_roofingtiles015b.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·RoofingTiles015B",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_ThatchedRoof001A": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_thatchedroof001a.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·ThatchedRoof001A",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "City_Roof_ThatchedRoof002A": {
+    "albedo": "materials/buildings/cityengine/roofs/acg_thatchedroof002a.jpg",
+    "roughness": 0.9,
+    "label": "屋顶瓦面·ThatchedRoof002A",
+    "part": "roof",
+    "style": "cityengine"
+  },
+  "Building_H_0_10_00": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·00",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_01": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_01.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·01",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_02": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_02.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·02",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_03": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_03.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·03",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_04": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_04.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·04",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_05": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_05.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·05",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_06": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_06.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·06",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_07": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_07.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·07",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_08": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_08.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·08",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_09": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_09.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·09",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_10": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_10.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·10",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_11": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_11.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·11",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_12": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_12.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·12",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_13": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_13.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·13",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_14": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_14.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·14",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_15": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_15.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·15",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·low",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_10_20_00": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·00",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_01": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_01.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·01",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_02": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_02.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·02",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_03": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_03.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·03",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_04": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_04.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·04",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_05": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_05.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·05",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_06": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_06.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·06",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_07": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_07.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·07",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_08": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_08.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·08",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_09": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_09.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·09",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_10": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_10.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·10",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_11": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_11.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·11",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_12": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_12.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·12",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_13": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_13.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·13",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_14": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_14.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·14",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_15": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_15.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·15",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_20_40_00": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·00",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_01": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_01.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·01",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_02": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_02.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·02",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_03": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_03.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·03",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_04": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_04.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·04",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_05": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_05.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·05",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_06": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_06.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·06",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_07": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_07.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·07",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_08": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_08.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·08",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_09": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_09.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·09",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_10": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_10.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·10",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_11": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_11.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·11",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_12": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_12.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·12",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_13": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_13.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·13",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_14": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_14.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·14",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_15": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_15.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·15",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·high",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_40_plus_00": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·00",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_01": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_01.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·01",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_02": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_02.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·02",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_03": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_03.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·03",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_04": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_04.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·04",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_05": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_05.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·05",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_06": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_06.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·06",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_07": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_07.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·07",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_08": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_08.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·08",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_09": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_09.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·09",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_10": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_10.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·10",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_11": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_11.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·11",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_12": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_12.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·12",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_13": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_13.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·13",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_14": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_14.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·14",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_15": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_15.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·15",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_00.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_Roof_00": {
+    "albedo": "materials/buildings/osm/buildings_roof_00.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·00",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_01": {
+    "albedo": "materials/buildings/osm/buildings_roof_01.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·01",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_02": {
+    "albedo": "materials/buildings/osm/buildings_roof_02.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·02",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_03": {
+    "albedo": "materials/buildings/osm/buildings_roof_03.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·03",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_04": {
+    "albedo": "materials/buildings/osm/buildings_roof_04.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·04",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_05": {
+    "albedo": "materials/buildings/osm/buildings_roof_05.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·05",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof": {
+    "albedo": "materials/buildings/osm/buildings_roof_00.jpg",
+    "roughness": 0.95,
+    "label": "屋顶",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_H_0_10_16": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_16.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·16",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_17": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_17.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·17",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_18": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_18.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·18",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_0_10_19": {
+    "albedo": "materials/buildings/osm/buildings_facade_low_19.jpg",
+    "roughness": 0.9,
+    "label": "立面·low·19",
+    "part": "facade",
+    "height_band": "low",
+    "style": "osm"
+  },
+  "Building_H_10_20_16": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_16.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·16",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_17": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_17.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·17",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_18": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_18.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·18",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_10_20_19": {
+    "albedo": "materials/buildings/osm/buildings_facade_mid_19.jpg",
+    "roughness": 0.9,
+    "label": "立面·mid·19",
+    "part": "facade",
+    "height_band": "mid",
+    "style": "osm"
+  },
+  "Building_H_20_40_16": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_16.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·16",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_17": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_17.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·17",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_18": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_18.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·18",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_20_40_19": {
+    "albedo": "materials/buildings/osm/buildings_facade_high_19.jpg",
+    "roughness": 0.9,
+    "label": "立面·high·19",
+    "part": "facade",
+    "height_band": "high",
+    "style": "osm"
+  },
+  "Building_H_40_plus_16": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_16.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·16",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_17": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_17.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·17",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_18": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_18.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·18",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_H_40_plus_19": {
+    "albedo": "materials/buildings/osm/buildings_facade_tower_19.jpg",
+    "roughness": 0.9,
+    "label": "立面·tower·19",
+    "part": "facade",
+    "height_band": "tower",
+    "style": "osm"
+  },
+  "Building_Roof_06": {
+    "albedo": "materials/buildings/osm/buildings_roof_06.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·06",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_07": {
+    "albedo": "materials/buildings/osm/buildings_roof_07.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·07",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_08": {
+    "albedo": "materials/buildings/osm/buildings_roof_08.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·08",
+    "part": "roof",
+    "style": "osm"
+  },
+  "Building_Roof_09": {
+    "albedo": "materials/buildings/osm/buildings_roof_09.jpg",
+    "roughness": 0.92,
+    "label": "屋顶·09",
+    "part": "roof",
+    "style": "osm"
+  },
+  "vegetation_grass_00": {
+    "albedo": "materials/vegetation/vegetation_grass_00.jpg",
+    "roughness": 1.0,
+    "label": "草地00",
+    "part": "vegetation"
+  },
+  "vegetation_grass_01": {
+    "albedo": "materials/vegetation/vegetation_grass_01.jpg",
+    "roughness": 1.0,
+    "label": "草地01",
+    "part": "vegetation"
+  },
+  "vegetation_grass_02": {
+    "albedo": "materials/vegetation/vegetation_grass_02.jpg",
+    "roughness": 1.0,
+    "label": "草地02",
+    "part": "vegetation"
+  },
+  "vegetation_forest_00": {
+    "albedo": "materials/vegetation/vegetation_forest_00.jpg",
+    "roughness": 1.0,
+    "label": "林地00",
+    "part": "vegetation"
+  },
+  "vegetation_forest_01": {
+    "albedo": "materials/vegetation/vegetation_forest_01.jpg",
+    "roughness": 1.0,
+    "label": "林地01",
+    "part": "vegetation"
+  },
+  "vegetation_forest_02": {
+    "albedo": "materials/vegetation/vegetation_forest_02.jpg",
+    "roughness": 1.0,
+    "label": "林地02",
+    "part": "vegetation"
+  }
+}

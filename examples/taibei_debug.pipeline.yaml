@@ -1,0 +1,33 @@
+schema_version: "0.2"
+extends:
+  - ../presets/taibei_debug.yaml
+
+scene:
+  id: ""
+  title: "Taipei debug (OSM-only friendly)"
+
+pipeline:
+  - step: resolve_extent
+    enabled: true
+
+  - step: terrain
+    enabled: false
+
+  - step: osm_city_usd
+    enabled: true
+    depends_on: [resolve_extent]
+
+  - step: osm_labels
+    enabled: true
+
+  - step: nav_pgm
+    enabled: true
+
+  - step: overlay
+    enabled: false
+
+  - step: assemble_world
+    enabled: true
+
+  - step: package_zip
+    enabled: false

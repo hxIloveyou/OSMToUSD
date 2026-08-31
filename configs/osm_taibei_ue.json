@@ -1,0 +1,19 @@
+{
+  "build_layers": "roads,buildings,water,vegetation,lamps,signs",
+  "layers": {
+    "buildings": true,
+    "roads": true,
+    "water": true,
+    "vegetation": true,
+    "lamps": true,
+    "signs": true
+  },
+  "outputs": {
+    "city_water": "layers/city_water.usdc",
+    "city_vegetation": "layers/city_vegetation.usdc",
+    "city_roads": "layers/city_roads.usdc",
+    "city_buildings": "layers/city_buildings.usdc",
+    "city_lamps": "layers/city_lamps.usdc",
+    "city_signs": "layers/city_signs.usdc"
+  }
+}

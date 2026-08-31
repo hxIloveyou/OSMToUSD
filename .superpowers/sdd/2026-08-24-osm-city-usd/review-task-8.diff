@@ -1,0 +1,380 @@
++++ water_veg.py
++from __future__ import annotations
++
++from typing import Optional
++
++from shapely.geometry import LineString, Polygon
++from shapely.geometry.base import BaseGeometry
++
++from cityusd.osm_parse import OsmData, OsmWay
++
++WATERWAY_WIDTH_M = {
++    "river": 8.0,
++    "stream": 3.0,
++    "canal": 5.0,
++    "default": 4.0,
++}
++
++skip_count = 0
++
++_VEG_LANDUSE = frozenset({"grass", "forest", "meadow"})
++_WATERWAY_KINDS = frozenset({"river", "stream", "canal"})
++
++
++def water_polygons(data: OsmData, cutters) -> list:
++    """Closed water areas + buffered waterways; difference against roads+buildings."""
++    out: list = []
++    if data is None or not data.ways:
++        return out
++    for way in data.ways:
++        geom = _water_geom(way)
++        if geom is None:
++            continue
++        cut = _cut_or_skip(geom, cutters)
++        if cut is None:
++            continue
++        out.extend(_as_polygon_list(cut))
++    return out
++
++
++def vegetation_polygons(data: OsmData, cutters) -> list:
++    """Vegetation areas difference against roads+buildings."""
++    out: list = []
++    if data is None or not data.ways:
++        return out
++    for way in data.ways:
++        if not _is_vegetation(way.tags):
++            continue
++        geom = _closed_polygon(way)
++        if geom is None:
++            continue
++        cut = _cut_or_skip(geom, cutters)
++        if cut is None:
++            continue
++        out.extend(_as_polygon_list(cut))
++    return out
++
++
++def _is_water_area(tags: dict[str, str]) -> bool:
++    if tags.get("natural") == "water":
++        return True
++    if "water" in tags:
++        return True
++    if tags.get("landuse") == "reservoir":
++        return True
++    return False
++
++
++def _is_waterway_line(tags: dict[str, str]) -> bool:
++    return tags.get("waterway") in _WATERWAY_KINDS
++
++
++def _is_vegetation(tags: dict[str, str]) -> bool:
++    if tags.get("landuse") in _VEG_LANDUSE:
++        return True
++    if tags.get("leisure") == "park":
++        return True
++    if tags.get("natural") == "wood":
++        return True
++    return False
++
++
++def _waterway_width_m(tags: dict[str, str]) -> float:
++    kind = tags.get("waterway", "")
++    return WATERWAY_WIDTH_M.get(kind, WATERWAY_WIDTH_M["default"])
++
++
++def _water_geom(way: OsmWay) -> Optional[BaseGeometry]:
++    if _is_water_area(way.tags):
++        return _closed_polygon(way)
++    if _is_waterway_line(way.tags):
++        if way.coords_m is None or len(way.coords_m) < 2:
++            return None
++        line = LineString(way.coords_m)
++        if line.is_empty or line.length == 0:
++            return None
++        width = _waterway_width_m(way.tags)
++        if width <= 0:
++            return None
++        poly = line.buffer(width / 2.0)
++        if poly is None or poly.is_empty:
++            return None
++        return poly
++    return None
++
++
++def _closed_polygon(way: OsmWay) -> Optional[Polygon]:
++    if not way.closed or way.coords_m is None or len(way.coords_m) < 3:
++        return None
++    coords = list(way.coords_m)
++    if coords[0] != coords[-1]:
++        coords.append(coords[0])
++    poly = Polygon(coords)
++    if poly.is_empty or not poly.is_valid:
++        return None
++    return poly
++
++
++def _cut_or_skip(geom: BaseGeometry, cutters) -> Optional[BaseGeometry]:
++    """Difference against cutters; on failure skip and increment skip_count."""
++    global skip_count
++    if geom is None or geom.is_empty:
++        return None
++    if cutters is None or getattr(cutters, "is_empty", False):
++        return geom
++    try:
++        result = geom.difference(cutters)
++    except Exception:
++        skip_count += 1
++        return None
++    if result is None or result.is_empty:
++        return None
++    return result
++
++
++def _as_polygon_list(geom: BaseGeometry) -> list:
++    if geom is None or geom.is_empty:
++        return []
++    gtype = getattr(geom, "geom_type", "")
++    if gtype == "Polygon":
++        return [geom]
++    if gtype == "MultiPolygon":
++        return [g for g in geom.geoms if g is not None and not g.is_empty]
++    if gtype == "GeometryCollection":
++        out: list = []
++        for g in geom.geoms:
++            out.extend(_as_polygon_list(g))
++        return out
++    return []
++++ furniture.py
++from __future__ import annotations
++
++import math
++from typing import Iterable, List, Tuple
++
++from shapely.geometry import LineString
++
++from cityusd.osm_parse import OsmData, OsmWay
++from cityusd.roads import way_width_m
++from cityusd.types import CM_PER_M
++
++LAMP_HIGHWAYS = frozenset({"primary", "trunk", "motorway"})
++LAMP_LATERAL_EXTRA_M = 0.4
++
++Point3D = Tuple[float, float, float]
++Face = Tuple[int, int, int]
++
++
++def tree_instances(data: OsmData) -> list[tuple[float, float, float]]:
++    """natural=tree nodes → (x, y, yaw=0)."""
++    out: list[tuple[float, float, float]] = []
++    if data is None or not data.nodes:
++        return out
++    for node in data.nodes:
++        if node.tags.get("natural") != "tree":
++            continue
++        x, y = node.xy_m
++        out.append((float(x), float(y), 0.0))
++    return out
++
++
++def lamp_instances(
++    motor_ways: list[OsmWay],
++    spacing_m: float = 30.0,
++) -> list[tuple[float, float, float]]:
++    """primary/trunk/motorway only; both sides; spacing default 30; offset width/2+0.4m."""
++    out: list[tuple[float, float, float]] = []
++    if not motor_ways or spacing_m <= 0:
++        return out
++    for way in motor_ways:
++        hwy = way.tags.get("highway", "")
++        if hwy not in LAMP_HIGHWAYS:
++            continue
++        if way.coords_m is None or len(way.coords_m) < 2:
++            continue
++        line = LineString(way.coords_m)
++        if line.is_empty or line.length <= 0:
++            continue
++        width = way_width_m(way.tags)
++        lateral = width / 2.0 + LAMP_LATERAL_EXTRA_M
++        for dist in _sample_distances(line.length, spacing_m):
++            xy, yaw = _point_and_yaw(line, dist)
++            if xy is None:
++                continue
++            dx, dy = math.cos(yaw), math.sin(yaw)
++            # Left: (-dy, dx); right: (dy, -dx)
++            for sign in (1.0, -1.0):
++                rx = xy[0] + sign * dy * lateral
++                ry = xy[1] - sign * dx * lateral
++                out.append((rx, ry, yaw))
++    return out
++
++
++def placeholder_tree_mesh() -> tuple[list, list]:
++    """Cylinder r=0.15m h=1.2m + cone r=1.2m h=2.5m; verts/faces in centimeters."""
++    verts: List[Point3D] = []
++    faces: List[Face] = []
++    _append_cylinder(verts, faces, radius_m=0.15, height_m=1.2, z0_m=0.0, segments=8)
++    _append_cone(verts, faces, radius_m=1.2, height_m=2.5, z0_m=1.2, segments=8)
++    return verts, faces
++
++
++def placeholder_lamp_mesh() -> tuple[list, list]:
++    """Cylinder r=0.08m h=6m + 0.3m cube on top; verts/faces in centimeters."""
++    verts: List[Point3D] = []
++    faces: List[Face] = []
++    _append_cylinder(verts, faces, radius_m=0.08, height_m=6.0, z0_m=0.0, segments=8)
++    _append_box(verts, faces, size_m=0.3, center_z_m=6.0 + 0.15)
++    return verts, faces
++
++
++def _sample_distances(length: float, spacing_m: float) -> Iterable[float]:
++    if length <= spacing_m:
++        return [length * 0.5]
++    distances = []
++    d = spacing_m
++    while d < length:
++        distances.append(d)
++        d += spacing_m
++    return distances
++
++
++def _point_and_yaw(line: LineString, dist: float):
++    if dist < 0:
++        dist = 0.0
++    elif dist > line.length:
++        dist = line.length
++    pt = line.interpolate(dist)
++    delta = min(0.5, max(line.length * 0.01, 1e-3))
++    a = line.interpolate(max(0.0, dist - delta))
++    b = line.interpolate(min(line.length, dist + delta))
++    dx, dy = b.x - a.x, b.y - a.y
++    if math.hypot(dx, dy) < 1e-12:
++        return None, None
++    yaw = math.atan2(dy, dx)
++    return (float(pt.x), float(pt.y)), yaw
++
++
++def _append_cylinder(
++    verts: List[Point3D],
++    faces: List[Face],
++    radius_m: float,
++    height_m: float,
++    z0_m: float,
++    segments: int,
++) -> None:
++    r = radius_m * CM_PER_M
++    z0 = z0_m * CM_PER_M
++    z1 = (z0_m + height_m) * CM_PER_M
++    base = len(verts)
++    # bottom ring, top ring
++    for i in range(segments):
++        ang = 2.0 * math.pi * i / segments
++        x = r * math.cos(ang)
++        y = r * math.sin(ang)
++        verts.append((x, y, z0))
++    for i in range(segments):
++        ang = 2.0 * math.pi * i / segments
++        x = r * math.cos(ang)
++        y = r * math.sin(ang)
++        verts.append((x, y, z1))
++    bot_center = base + 2 * segments
++    top_center = bot_center + 1
++    verts.append((0.0, 0.0, z0))
++    verts.append((0.0, 0.0, z1))
++    for i in range(segments):
++        j = (i + 1) % segments
++        b0, b1 = base + i, base + j
++        t0, t1 = base + segments + i, base + segments + j
++        faces.append((b0, b1, t1))
++        faces.append((b0, t1, t0))
++        faces.append((bot_center, b1, b0))
++        faces.append((top_center, t0, t1))
++
++
++def _append_cone(
++    verts: List[Point3D],
++    faces: List[Face],
++    radius_m: float,
++    height_m: float,
++    z0_m: float,
++    segments: int,
++) -> None:
++    r = radius_m * CM_PER_M
++    z0 = z0_m * CM_PER_M
++    z_tip = (z0_m + height_m) * CM_PER_M
++    base = len(verts)
++    for i in range(segments):
++        ang = 2.0 * math.pi * i / segments
++        x = r * math.cos(ang)
++        y = r * math.sin(ang)
++        verts.append((x, y, z0))
++    tip = base + segments
++    bot_center = tip + 1
++    verts.append((0.0, 0.0, z_tip))
++    verts.append((0.0, 0.0, z0))
++    for i in range(segments):
++        j = (i + 1) % segments
++        faces.append((base + i, base + j, tip))
++        faces.append((bot_center, base + j, base + i))
++
++
++def _append_box(
++    verts: List[Point3D],
++    faces: List[Face],
++    size_m: float,
++    center_z_m: float,
++) -> None:
++    half = (size_m * CM_PER_M) / 2.0
++    cz = center_z_m * CM_PER_M
++    base = len(verts)
++    corners = [
++        (-half, -half, cz - half),
++        (half, -half, cz - half),
++        (half, half, cz - half),
++        (-half, half, cz - half),
++        (-half, -half, cz + half),
++        (half, -half, cz + half),
++        (half, half, cz + half),
++        (-half, half, cz + half),
++    ]
++    verts.extend(corners)
++    quads = [
++        (0, 1, 2, 3),
++        (4, 7, 6, 5),
++        (0, 4, 5, 1),
++        (1, 5, 6, 2),
++        (2, 6, 7, 3),
++        (3, 7, 4, 0),
++    ]
++    for a, b, c, d in quads:
++        faces.append((base + a, base + b, base + c))
++        faces.append((base + a, base + c, base + d))
++++ test_water_veg.py
++from pathlib import Path
++
++from cityusd.osm_parse import parse_osm
++from cityusd.water_veg import water_polygons
++
++FIXTURE = Path(__file__).resolve().parent / "fixtures" / "tiny.osm"
++
++
++def test_tiny_water_one_polygon():
++    data = parse_osm(FIXTURE)
++    polys = water_polygons(data, None)
++    assert len(polys) == 1
++++ test_furniture.py
++from cityusd.furniture import lamp_instances, placeholder_tree_mesh
++from cityusd.osm_parse import OsmWay
++
++
++def test_lamp_only_primary():
++    res = OsmWay(1, {"highway": "residential"}, [(0.0, 0.0), (40.0, 0.0)], False)
++    pri = OsmWay(2, {"highway": "primary"}, [(0.0, 10.0), (60.0, 10.0)], False)
++    assert lamp_instances([res]) == []
++    assert len(lamp_instances([pri])) >= 2
++
++
++def test_tree_placeholder_has_faces():
++    v, f = placeholder_tree_mesh()
++    assert len(v) > 8 and len(f) > 4

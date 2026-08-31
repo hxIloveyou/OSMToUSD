@@ -1,0 +1,113 @@
+{
+  "spec_version": "1.1",
+  "scene_id": "demo_overlay_full1",
+  "doc": "Edited with Scene Draft (Tools/scene_editor)",
+  "scene_tags": [
+    "urban",
+    "ground",
+    "aerial"
+  ],
+  "crs": "EPSG:32651",
+  "origin_wgs84": {
+    "lon": 121.53296235,
+    "lat": 25.04756678,
+    "height_m": 0
+  },
+  "origin_utm_abs_m": {
+    "easting": 352008.2541932481,
+    "northing": 2771017.017037268
+  },
+  "units": {
+    "meters_per_unit": 0.01,
+    "up_axis": "Z",
+    "pose_unit": "meter",
+    "note": "pose 使用局部米；生成器写入 USD 时 ×100 为厘米。也可使用 lon/lat。"
+  },
+  "asset_library": "/mnt/e/WuRen/USDManager/USDManager/USDManager/data/AssetLibrary",
+  "capabilities": {
+    "has_static_obstacles": false,
+    "has_dynamic_obstacles": true,
+    "has_equipment": false,
+    "dynamic_schema_default": "spawn_anchor"
+  },
+  "placements": [
+    {
+      "id": "bird_parrot_01",
+      "asset_id": "bird_parrot",
+      "class": "dynamic",
+      "domain": "air",
+      "kind": "bird",
+      "pose": {
+        "x_m": 387.248,
+        "y_m": 803.12,
+        "z_m": 30,
+        "yaw_deg": 0,
+        "lon": 121.53671405,
+        "lat": 25.05485526
+      },
+      "motion": {
+        "schema": "road_follow_loop",
+        "start_sec": 0,
+        "period_sec": 40,
+        "end_sec": 40,
+        "path_m": [
+          [
+            387.248,
+            803.12,
+            30
+          ],
+          [
+            386.656,
+            665.112,
+            30
+          ],
+          [
+            382.557,
+            536.102,
+            30
+          ],
+          [
+            395.355,
+            302.947,
+            30
+          ],
+          [
+            390.53,
+            190.075,
+            30
+          ],
+          [
+            277.632,
+            83.748,
+            30
+          ],
+          [
+            45.179,
+            88.954,
+            30
+          ],
+          [
+            -65.218,
+            130.482,
+            30
+          ],
+          [
+            -238.109,
+            392.266,
+            30
+          ],
+          [
+            -298.033,
+            599.943,
+            30
+          ],
+          [
+            -178.667,
+            803.876,
+            30
+          ]
+        ]
+      }
+    }
+  ]
+}

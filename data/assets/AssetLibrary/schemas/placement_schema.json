@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ScenePlacement",
+  "type": "object",
+  "required": [
+    "asset_id",
+    "pose"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "asset_id": {
+      "type": "string"
+    },
+    "class": {
+      "enum": [
+        "static",
+        "dynamic"
+      ]
+    },
+    "pose": {
+      "type": "object",
+      "required": [
+        "x_m",
+        "y_m",
+        "z_m",
+        "yaw_deg"
+      ],
+      "properties": {
+        "x_m": {
+          "type": "number"
+        },
+        "y_m": {
+          "type": "number"
+        },
+        "z_m": {
+          "type": "number"
+        },
+        "yaw_deg": {
+          "type": "number"
+        }
+      }
+    },
+    "motion": {
+      "type": "object"
+    }
+  }
+}

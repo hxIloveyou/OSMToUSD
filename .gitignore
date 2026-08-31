@@ -1,0 +1,42 @@
+﻿# Python / test
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Generated Scene Packages and archives (back up outside git)
+output/
+*.zip
+tools.zip
+
+# Heavy geospatial inputs
+data/osm/
+data/imagery/
+data/rasters/
+data/dem/
+*.tif
+*.tiff
+*.osm.pbf
+
+# Large asset binaries
+*.jpg
+*.jpeg
+*.png
+*.exr
+*.hdr
+*.bmp
+data/assets/**/inbox/
+
+# Compiled USD layers
+*.usdc
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,178 @@
++++ E:\UEWork\ROS2Test\CityUsd\tools\cityusd\pgm.py
++"""Nav2 occupancy PGM + map.yaml export."""
++
++from __future__ import annotations
++
++import json
++import math
++from pathlib import Path
++from typing import Sequence, Tuple
++
++import numpy as np
++from pyproj import Transformer
++from rasterio import features
++from rasterio.transform import from_bounds
++
++from cityusd.types import ExtentM, Origin, RasterMeta
++
++UNKNOWN = 205
++FREE = 254
++OCCUPIED = 0
++
++
++def _utm_xy(lon: float, lat: float, epsg: int) -> Tuple[float, float]:
++    transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
++    east, north = transformer.transform(lon, lat)
++    return float(east), float(north)
++
++
++def _extent_json(extent: ExtentM) -> dict:
++    return {
++        "east": extent.width,
++        "north": extent.height,
++        "west": extent.west,
++        "south": extent.south,
++    }
++
++
++def _write_pgm(path: Path, grid: np.ndarray) -> None:
++    """Write binary PGM P5, 8-bit. grid shape (ny, nx), row 0 = north."""
++    ny, nx = grid.shape
++    header = f"P5\n{nx} {ny}\n255\n".encode("ascii")
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_bytes(header + np.ascontiguousarray(grid, dtype=np.uint8).tobytes())
++
++
++def _write_yaml(path: Path, image_name: str, resolution_m: float, extent: ExtentM) -> None:
++    text = (
++        f"image: {image_name}\n"
++        f"resolution: {resolution_m}\n"
++        f"origin: [{float(extent.west)}, {float(extent.south)}, 0.0]\n"
++        f"negate: 0\n"
++        f"occupied_thresh: 0.65\n"
++        f"free_thresh: 0.196\n"
++    )
++    path.parent.mkdir(parents=True, exist_ok=True)
++    path.write_text(text, encoding="utf-8")
++
++
++def _write_meta_json(
++    out_json: Path,
++    *,
++    size_px: Tuple[int, int],
++    origin: Origin,
++    utm_origin: Tuple[float, float],
++    extent: ExtentM,
++    meters_per_pixel: Tuple[float, float],
++    range_source: str,
++) -> None:
++    payload = {
++        "size_px": [int(size_px[0]), int(size_px[1])],
++        "zmin_m": None,
++        "zmax_m": None,
++        "origin_wgs84": {
++            "lon": origin.lon,
++            "lat": origin.lat,
++            "height_m": origin.height_m,
++        },
++        "utm_origin": [utm_origin[0], utm_origin[1]],
++        "extent_m": _extent_json(extent),
++        "meters_per_pixel": [meters_per_pixel[0], meters_per_pixel[1]],
++        "crs_epsg": origin.epsg,
++        "range_source": range_source,
++    }
++    out_json.parent.mkdir(parents=True, exist_ok=True)
++    out_json.write_text(json.dumps(payload, indent=2), encoding="utf-8")
++
++
++def _rasterize_shapes(
++    polys: Sequence,
++    out_shape: Tuple[int, int],
++    transform,
++) -> np.ndarray:
++    if not polys:
++        return np.zeros(out_shape, dtype=np.uint8)
++    shapes = ((geom, 1) for geom in polys if geom is not None and not geom.is_empty)
++    return features.rasterize(
++        shapes,
++        out_shape=out_shape,
++        transform=transform,
++        fill=0,
++        default_value=1,
++        dtype=np.uint8,
++        all_touched=False,
++    )
++
++
++def rasterize_pgm(
++    extent: ExtentM,
++    occupied_polys: list,
++    free_polys: list,
++    resolution_m: float,
++    out_pgm: Path,
++    out_yaml: Path,
++    out_json: Path,
++    origin: Origin,
++    range_source: str,
++) -> RasterMeta:
++    if resolution_m <= 0:
++        raise ValueError("resolution_m must be positive")
++    if extent.width <= 0 or extent.height <= 0:
++        raise ValueError("extent width and height must be positive")
++
++    nx = int(math.ceil(extent.width / resolution_m))
++    ny = int(math.ceil(extent.height / resolution_m))
++    # from_bounds: row 0 = north (north-up)
++    transform = from_bounds(extent.west, extent.south, extent.east, extent.north, nx, ny)
++
++    grid = np.full((ny, nx), UNKNOWN, dtype=np.uint8)
++
++    free_mask = _rasterize_shapes(free_polys, (ny, nx), transform)
++    grid[free_mask > 0] = FREE
++
++    occ_mask = _rasterize_shapes(occupied_polys, (ny, nx), transform)
++    grid[occ_mask > 0] = OCCUPIED
++
++    _write_pgm(out_pgm, grid)
++    _write_yaml(out_yaml, out_pgm.name, resolution_m, extent)
++
++    utm_origin = _utm_xy(origin.lon, origin.lat, origin.epsg)
++    size_px = (nx, ny)
++    mpp = (resolution_m, resolution_m)
++    _write_meta_json(
++        out_json,
++        size_px=size_px,
++        origin=origin,
++        utm_origin=utm_origin,
++        extent=extent,
++        meters_per_pixel=mpp,
++        range_source=range_source,
++    )
++    return RasterMeta(
++        size_px=size_px,
++        zmin_m=None,
++        zmax_m=None,
++        origin=origin,
++        utm_origin=utm_origin,
++        extent_m=extent,
++        meters_per_pixel=mpp,
++        crs_epsg=origin.epsg,
++        range_source=range_source,
++    )
++++ E:\UEWork\ROS2Test\CityUsd\tests\test_pgm.py
++from shapely.geometry import Polygon, box
++from cityusd.types import ExtentM
++from cityusd.crs import make_origin
++from cityusd.pgm import rasterize_pgm
++
++
++def test_building_is_occupied(tmp_path):
++    extent = ExtentM(-50, -50, 50, 50)
++    occ = [box(-10, -10, 10, 10)]
++    free = [box(-40, -2, 40, 2)]
++    o = make_origin(119.0, 36.0)
++    meta = rasterize_pgm(extent, occ, free, 1.0, tmp_path/"map.pgm", tmp_path/"map.yaml", tmp_path/"map_meta.json", o, "osm_bbox")
++    raw = (tmp_path/"map.pgm").read_bytes()
++    assert b"P5" in raw[:8]
++    yaml_text = (tmp_path/"map.yaml").read_text(encoding="utf-8")
++    assert "origin: [-50.0, -50.0, 0.0]" in yaml_text or "origin: [-50, -50, 0]" in yaml_text
