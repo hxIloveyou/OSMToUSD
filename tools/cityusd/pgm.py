@@ -107,6 +107,8 @@ def _rasterize_shapes(
     polys: Sequence,
     out_shape: Tuple[int, int],
     transform,
+    *,
+    all_touched: bool = False,
 ) -> np.ndarray:
     if not polys:
         return np.zeros(out_shape, dtype=np.uint8)
@@ -118,7 +120,7 @@ def _rasterize_shapes(
         fill=0,
         default_value=1,
         dtype=np.uint8,
-        all_touched=False,
+        all_touched=all_touched,
     )
 
 
@@ -128,6 +130,102 @@ def occupancy_to_cost(grid: np.ndarray) -> np.ndarray:
     cost[grid == FREE] = COST_FREE
     cost[grid == OCCUPIED] = COST_LETHAL
     return cost
+
+
+def write_ros_map_yaml(
+    path: Path,
+    *,
+    image_name: str,
+    resolution_m: float,
+    origin_xyz: Tuple[float, float, float],
+    header_comment: str | None = None,
+) -> None:
+    """Write Nav2 map_server YAML with explicit origin."""
+    comment = f"# {header_comment}\n" if header_comment else ""
+    text = (
+        comment
+        + f"image: {image_name}\n"
+        f"resolution: {resolution_m}\n"
+        f"origin: [{origin_xyz[0]}, {origin_xyz[1]}, {origin_xyz[2]}]\n"
+        f"negate: 0\n"
+        f"occupied_thresh: 0.65\n"
+        f"free_thresh: 0.196\n"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def write_valhalla_origin_yaml(
+    path: Path,
+    *,
+    extent_payload: dict,
+    origin: Origin,
+    scene_id: str | None = None,
+) -> None:
+    utm = extent_payload.get("utm_abs_m") or {}
+    og = extent_payload.get("origin_wgs84") or {}
+    zone = int(origin.epsg) - 32600 if int(origin.epsg) >= 32600 else 51
+    lines = [
+        f"# Valhalla / map_local origin{f' — {scene_id}' if scene_id else ''}.",
+        "# map(0,0) = UTM (utm_origin_e, utm_origin_n). "
+        "northing = utm_origin_n + map_y_sign * map_y.",
+        "valhalla_origin:",
+        f"  utm_origin_e: {float(utm.get('e0', 0.0))}",
+        f"  utm_origin_n: {float(utm.get('n0', 0.0))}",
+        "  map_y_sign: 1.0",
+        "  map_pose_is_local: true",
+        f"  utm_zone: {zone}",
+        "  utm_northp: true",
+        "  geo_origin: {"
+        f"lat: {float(og.get('latitude', origin.lat))}, "
+        f"lon: {float(og.get('longitude', origin.lon))}"
+        "}",
+        "",
+    ]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_nav2_yaml_bundle(
+    out_dir: Path,
+    *,
+    extent: ExtentM,
+    extent_payload: dict,
+    origin: Origin,
+    resolution_m: float,
+    scene_id: str | None = None,
+) -> None:
+    """Emit map_local.yaml, UTM map.yaml, and valhalla_origin.yaml for nav2/connected."""
+    local_x = float(extent.west)
+    local_y = float(extent.south)
+    utm = extent_payload.get("utm_abs_m") or {}
+    utm_e0 = float(utm.get("e0", 0.0))
+    utm_n0 = float(utm.get("n0", 0.0))
+    map_y_sign = 1.0
+
+    write_ros_map_yaml(
+        out_dir / "map_local.yaml",
+        image_name="map.pgm",
+        resolution_m=float(resolution_m),
+        origin_xyz=(local_x, local_y, 0.0),
+        header_comment=(
+            "USD / PGM shared frame: map(0,0) = UTM "
+            f"({utm_e0:.3f}, {utm_n0:.3f}). ROS origin is SW corner."
+        ),
+    )
+    write_ros_map_yaml(
+        out_dir / "map.yaml",
+        image_name="map.pgm",
+        resolution_m=float(resolution_m),
+        origin_xyz=(utm_e0 + local_x, utm_n0 + map_y_sign * local_y, 0.0),
+        header_comment="UTM of PGM SW corner (= valhalla_origin + map_local origin).",
+    )
+    write_valhalla_origin_yaml(
+        out_dir / "valhalla_origin.yaml",
+        extent_payload=extent_payload,
+        origin=origin,
+        scene_id=scene_id,
+    )
 
 
 def rasterize_pgm(
@@ -140,6 +238,10 @@ def rasterize_pgm(
     out_json: Path,
     origin: Origin,
     range_source: str,
+    *,
+    free_all_touched: bool = False,
+    binary_occupancy: bool = False,
+    cost_same_as_map: bool = False,
 ) -> RasterMeta:
     if resolution_m <= 0:
         raise ValueError("resolution_m must be positive")
@@ -152,13 +254,16 @@ def rasterize_pgm(
     north = extent.south + ny * resolution_m
     transform = from_origin(extent.west, north, resolution_m, resolution_m)
 
-    grid = np.full((ny, nx), UNKNOWN, dtype=np.uint8)
+    background = OCCUPIED if binary_occupancy else UNKNOWN
+    grid = np.full((ny, nx), background, dtype=np.uint8)
 
     # Occupied first, then free: motor roads remain navigable where footprints overlap.
-    occ_mask = _rasterize_shapes(occupied_polys, (ny, nx), transform)
+    occ_mask = _rasterize_shapes(occupied_polys, (ny, nx), transform, all_touched=False)
     grid[occ_mask > 0] = OCCUPIED
 
-    free_mask = _rasterize_shapes(free_polys, (ny, nx), transform)
+    free_mask = _rasterize_shapes(
+        free_polys, (ny, nx), transform, all_touched=free_all_touched
+    )
     grid[free_mask > 0] = FREE
 
     mpp = (float(resolution_m), float(resolution_m))
@@ -172,7 +277,10 @@ def rasterize_pgm(
     }
     _write_pgm(out_pgm, grid)
     cost_pgm = out_pgm.with_name("cost.pgm")
-    _write_pgm(cost_pgm, occupancy_to_cost(grid))
+    if cost_same_as_map:
+        cost_pgm.write_bytes(out_pgm.read_bytes())
+    else:
+        _write_pgm(cost_pgm, occupancy_to_cost(grid))
     _write_yaml(out_yaml, out_pgm.name, float(resolution_m), extent, mpp)
 
     utm_origin = _utm_xy(origin.lon, origin.lat, origin.epsg)

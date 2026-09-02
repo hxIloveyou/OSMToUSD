@@ -13,7 +13,7 @@ except ImportError as exc:  # pragma: no cover
     raise ImportError("PyYAML required: pip install pyyaml") from exc
 
 
-SCHEMA_VERSION = "0.2"
+SCHEMA_VERSION = "0.3"
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -92,12 +92,17 @@ class PipelineConfig:
         return [s for s in self.steps if s.enabled]
 
 
-def _ensure_scene_id(scene: dict) -> str:
+def _ensure_scene_id(scene: dict, runtime: Optional[dict] = None) -> str:
     sid = str(scene.get("id") or "").strip()
     if sid:
         return sid
     pattern = str(scene.get("id_pattern") or "taibei_ue_{timestamp}")
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    rt = runtime or {}
+    stamp_mode = str(scene.get("id_stamp") or rt.get("scene_id_stamp") or "datetime").lower()
+    if stamp_mode == "date":
+        stamp = datetime.now().strftime("%Y%m%d")
+    else:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return pattern.replace("{timestamp}", stamp)
 
 
@@ -129,9 +134,11 @@ def load_pipeline_config(path: Path, *, overrides: Optional[dict] = None) -> Pip
     if not out_dir.is_absolute():
         out_dir = (project_root / out_dir).resolve()
 
+    rt = dict(data.get("runtime") or {})
+    sid = _ensure_scene_id(scene, rt)
     return PipelineConfig(
         schema_version=str(data.get("schema_version") or SCHEMA_VERSION),
-        scene_id=_ensure_scene_id(scene),
+        scene_id=sid,
         scene_title=str(scene.get("title") or ""),
         scene_id_pattern=str(scene.get("id_pattern") or "taibei_ue_{timestamp}"),
         frame=dict(data.get("frame") or {}),
@@ -139,7 +146,7 @@ def load_pipeline_config(path: Path, *, overrides: Optional[dict] = None) -> Pip
         output_dir=out_dir,
         output_layout=str(output.get("layout") or "cityusd_v1"),
         steps=steps,
-        runtime=dict(data.get("runtime") or {}),
+        runtime=rt,
         raw=data,
         source_path=path,
         project_root=project_root,

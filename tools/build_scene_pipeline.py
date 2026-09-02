@@ -36,6 +36,11 @@ def parse_args(argv=None) -> argparse.Namespace:
     )
     p.add_argument("--only", type=str, default="", help="Comma-separated step names")
     p.add_argument("--resume", action="store_true", help="Skip steps with matching input_hash in manifest")
+    p.add_argument(
+        "--release",
+        action="store_true",
+        help="Dated scene id (YYYYMMDD) + backup sibling packages under output/backups/",
+    )
     p.add_argument("--set", dest="overrides", action="append", default=[], help="dotted.key=value override")
     return p.parse_args(argv)
 
@@ -77,8 +82,18 @@ def main(argv=None) -> int:
         return 1
 
     overrides: dict = {}
+    if args.release:
+        overrides = _apply_overrides(
+            overrides,
+            [
+                "scene.id=",
+                "runtime.scene_id_stamp=date",
+                "runtime.backup_previous_packages=true",
+                "runtime.backup_self_if_exists=true",
+            ],
+        )
     if args.overrides:
-        overrides = _apply_overrides({}, args.overrides)
+        overrides = _apply_overrides(overrides, args.overrides)
 
     cfg = load_pipeline_config(cfg_path, overrides=overrides or None)
     only = [s.strip() for s in args.only.split(",") if s.strip()] or None

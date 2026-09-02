@@ -60,9 +60,10 @@ def test_nav_pgm_and_osm_labels_tiny(tmp_path: Path) -> None:
     cfg = _base_cfg(tmp_path / "packages", osm_copy)
     pkg = run_pipeline(cfg, only=["resolve_extent", "osm_labels", "nav_pgm"])
 
-    assert (pkg / "nav" / "map.pgm").is_file()
-    assert (pkg / "nav" / "cost.pgm").is_file()
-    assert (pkg / "nav" / "map.yaml").is_file()
+    assert (pkg / "nav2" / "connected" / "map.pgm").is_file()
+    assert (pkg / "nav2" / "connected" / "cost.pgm").is_file()
+    assert (pkg / "nav2" / "connected" / "map_local.yaml").is_file()
+    assert (pkg / "nav2" / "connected" / "valhalla_origin.yaml").is_file()
     assert (pkg / "layers" / "nav.usda").is_file()
 
     manifest = json.loads((pkg / "catalog" / "index" / "shard_manifest.json").read_text(encoding="utf-8"))
@@ -71,7 +72,7 @@ def test_nav_pgm_and_osm_labels_tiny(tmp_path: Path) -> None:
     shard_files = list((pkg / "catalog" / "shards").glob("lod0_*.json"))
     assert shard_files
 
-    meta = json.loads((pkg / "nav" / "map_meta.json").read_text(encoding="utf-8"))
+    meta = json.loads((pkg / "nav2" / "connected" / "map_meta.json").read_text(encoding="utf-8"))
     assert meta["resolution_m"] == 1.0
 
     m = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))

@@ -24,6 +24,18 @@ ROAD_WIDTH_M = {
     "path": 2.0,
     "default": 5.0,
 }
+
+# Multiplier applied by way_width_m() (USD / nav buffers). Default 1.0.
+ROAD_WIDTH_SCALE = 1.0
+
+
+def set_road_width_scale(scale: float) -> float:
+    """Set global road width scale; returns previous value."""
+    global ROAD_WIDTH_SCALE
+    prev = float(ROAD_WIDTH_SCALE)
+    ROAD_WIDTH_SCALE = max(0.01, float(scale))
+    return prev
+
 ROAD_RANK = [
     "motorway",
     "trunk",
@@ -127,14 +139,14 @@ def way_width_m(tags: dict[str, str]) -> float:
     if raw_width is not None:
         match = _WIDTH_RE.match(str(raw_width).strip())
         if match:
-            return float(match.group(1))
+            return float(match.group(1)) * float(ROAD_WIDTH_SCALE)
     raw_lanes = tags.get("lanes")
     if raw_lanes is not None:
         parsed = _parse_float(raw_lanes)
         if parsed is not None:
-            return parsed * 3.5
+            return parsed * 3.5 * float(ROAD_WIDTH_SCALE)
     hwy = tags.get("highway", "")
-    return ROAD_WIDTH_M.get(hwy, ROAD_WIDTH_M["default"])
+    return ROAD_WIDTH_M.get(hwy, ROAD_WIDTH_M["default"]) * float(ROAD_WIDTH_SCALE)
 
 
 def is_motor_highway(tags: dict[str, str]) -> bool:
@@ -145,7 +157,12 @@ def is_motor_highway(tags: dict[str, str]) -> bool:
     return hwy not in NON_MOTOR_HIGHWAYS
 
 
-def motor_carriageway_polygons(ways: list) -> list:
+def motor_carriageway_polygons(
+    ways: list,
+    *,
+    cap_style: str = "round",
+    join_style: str = "round",
+) -> list:
     """Simple half-width buffers of motor highways. No pavement hierarchy cut."""
     polys: list = []
     for way in ways or []:
@@ -158,7 +175,11 @@ def motor_carriageway_polygons(ways: list) -> list:
         line = LineString(coords)
         if line.is_empty or line.length <= 0:
             continue
-        buf = line.buffer(float(way_width_m(tags)) * 0.5)
+        buf = line.buffer(
+            float(way_width_m(tags)) * 0.5,
+            cap_style=cap_style,
+            join_style=join_style,
+        )
         if buf is None or buf.is_empty:
             continue
         polys.append(buf)

@@ -1,5 +1,7 @@
 # Scene Package Pipeline — Schema v0.2
 
+> **Superseded by [pipeline-schema-v0.3.md](pipeline-schema-v0.3.md)** for nav2 layout.
+
 CityUsd / USDManager 共用的 **Scene Package 构建契约**。  
 实现入口：`tools/build_scene_pipeline.py`（M0–M4 已实现）。
 

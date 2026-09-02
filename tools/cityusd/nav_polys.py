@@ -111,3 +111,39 @@ def collect_nav_polygons(
             free = motor_carriageway_polygons(osm.ways)
 
     return flatten_polys(occupied), flatten_polys(free)
+
+
+def collect_nav_polygons_connected(
+    osm: OsmData,
+    *,
+    use_buildings: bool = True,
+    use_water: bool = True,
+    use_roads_free: bool = True,
+    simple_buildings: bool = False,
+) -> tuple[list, list]:
+    """Nav polygons tuned for road connectivity (converter-style).
+
+    - Motor roads: per-way buffer, flat caps + round joins, NO subtract_road_hierarchy.
+    - Pair with rasterize_pgm(free_all_touched=True, binary_occupancy=True).
+    """
+    occupied: list = []
+    free: list = []
+
+    if use_buildings:
+        if simple_buildings:
+            occupied.extend(_simple_building_footprints(osm))
+        else:
+            occupied.extend(_building_footprints(osm))
+
+    if use_water:
+        occupied.extend(water_polygons(osm, None))
+
+    if use_roads_free:
+        highway_ways = [w for w in osm.ways if w.tags.get("highway")]
+        free = motor_carriageway_polygons(
+            highway_ways,
+            cap_style="flat",
+            join_style="round",
+        )
+
+    return flatten_polys(occupied), flatten_polys(free)

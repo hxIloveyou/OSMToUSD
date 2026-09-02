@@ -24,13 +24,13 @@ inputs:
     path: data/osm/taibei.osm.pbf
     clip_to_extent: true
   dem:
-    path: data/rasters/cliptb.tif
+    path: data/dem/cliptb.tif
     optional: false
   ortho:
-    path: data/rasters/taibei.tif
+    path: data/imagery/taibei.tif
     optional: true
   asset_library:
-    path: data/AssetLibrary
+    path: data/assets/AssetLibrary
   scene_description:
     path: data/uploads/demo_overlay_full_description.json
     optional: true
@@ -55,12 +55,16 @@ pipeline:
     depends_on: [resolve_extent, osm_city_usd]
     config_ref: configs/nav_pgm_osm_only.json
 
+  - step: nav2_nature
+    depends_on: [resolve_extent, terrain]
+    config_ref: configs/nav2_nature_default.json
+
   - step: overlay
     depends_on: [osm_city_usd]
     config_ref: configs/overlay_default.json
 
   - step: assemble_world
-    depends_on: [terrain, osm_city_usd, nav_pgm, osm_labels]
+    depends_on: [terrain, osm_city_usd, nav_pgm, nav2_nature, osm_labels]
     config_ref: configs/world_cityusd_v1.json
 
   - step: package_zip

@@ -88,10 +88,13 @@ def read_pgm_u8(path: Path) -> np.ndarray:
 
 
 def colorize_occupancy(grid: np.ndarray) -> np.ndarray:
-    """RGBA uint8: free green, occupied red, unknown faint gray."""
+    """RGBA uint8: free green, occupied red, unknown faint gray.
+
+    Free accepts both conventional Nav2 254 and downsampled-bundle 255.
+    """
     ny, nx = grid.shape
     rgba = np.zeros((ny, nx, 4), dtype=np.uint8)
-    free = grid == FREE
+    free = (grid == FREE) | (grid == 255)
     occ = grid == OCCUPIED
     unk = ~(free | occ)
     rgba[free] = (40, 220, 80, 160)
@@ -195,13 +198,16 @@ def write_nav_align_overlay(
     enabled: bool = True,
     max_preview_side: int = 4096,
     z_cm: float = 50.0,
+    debug_rel_dir: str | None = None,
+    label: str | None = None,
 ) -> list[str]:
     """Write debug overlay artifacts. Returns relative paths (empty if disabled)."""
     if not enabled:
         return []
 
     package_dir = Path(package_dir)
-    out_dir = package_dir / DEBUG_REL_DIR
+    rel_dir = (debug_rel_dir or DEBUG_REL_DIR).replace("\\", "/").strip("/")
+    out_dir = package_dir / rel_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     meta: dict = {}
@@ -216,7 +222,7 @@ def write_nav_align_overlay(
     png_path = out_dir / "align_preview.png"
     Image.fromarray(rgba, mode="RGBA").save(png_path)
 
-    # Texture path relative to the USDA file location (debug/nav_align/)
+    # Texture path relative to the USDA file location
     usda_path = out_dir / "nav_align_overlay.usda"
     write_nav_align_overlay_usda(
         usda_path,
@@ -225,18 +231,26 @@ def write_nav_align_overlay(
         z_cm=z_cm,
     )
 
+    tag = label or rel_dir
     readme = out_dir / README_NAME
-    readme.write_text(_README, encoding="utf-8")
+    readme.write_text(
+        _README.replace("debug/nav_align/nav_align_overlay.usda", f"{rel_dir}/nav_align_overlay.usda")
+        + f"\nVariant label: {tag}\nSource PGM: {map_pgm.name}\n",
+        encoding="utf-8",
+    )
 
     marker = {
         "production": False,
         "compose_into_world": False,
+        "label": tag,
+        "debug_rel_dir": rel_dir,
         "source_pgm": str(Path(map_pgm).relative_to(package_dir).as_posix())
         if map_pgm.is_relative_to(package_dir)
         else str(map_pgm),
         "coverage_m": coverage,
         "preview_size_px": [int(rgba.shape[1]), int(rgba.shape[0])],
         "pgm_size_px": [int(grid.shape[1]), int(grid.shape[0])],
+        "resolution_m": meta.get("resolution_m"),
         "z_cm": z_cm,
     }
     (out_dir / "overlay_meta.json").write_text(
@@ -245,8 +259,8 @@ def write_nav_align_overlay(
     )
 
     return [
-        f"{DEBUG_REL_DIR}/align_preview.png",
-        f"{DEBUG_REL_DIR}/nav_align_overlay.usda",
-        f"{DEBUG_REL_DIR}/{README_NAME}",
-        f"{DEBUG_REL_DIR}/overlay_meta.json",
+        f"{rel_dir}/align_preview.png",
+        f"{rel_dir}/nav_align_overlay.usda",
+        f"{rel_dir}/{README_NAME}",
+        f"{rel_dir}/overlay_meta.json",
     ]

@@ -31,7 +31,7 @@ from cityusd.buildings import (
     footprint_after_roads,
     group_buildings_for_lod,
 )
-from cityusd.crs import extent_from_lonlat_bbox, make_origin
+from cityusd.crs import extent_from_lonlat_bbox, lonlat_to_utm, make_origin
 from cityusd.furniture import (
     MAX_SIGN_NAMES,
     lamp_instances,
@@ -43,7 +43,7 @@ from cityusd.furniture import (
 from cityusd.facade_assets import ensure_facade_photos, ensure_roof_photos, photos_by_band
 from cityusd.geom import repair_polygon, to_mesh_cm, triangulate_polygon
 from cityusd.osm_parse import OsmWay, parse_osm
-from cityusd.inbox_bind import bind_inbox_photos
+from cityusd.inbox_bind import bind_inbox_photos, resolve_asset_library_root
 from cityusd.looks import (
     ROAD_DISPLAY_RGB,
     ROOF_VARIANT_COUNT,
@@ -70,7 +70,9 @@ from cityusd.package import (
     write_world,
 )
 from cityusd.proc_textures import ensure_scene_textures, write_sign_board_png
-from cityusd.pgm import rasterize_pgm
+from cityusd.nav_polys import collect_nav_polygons_connected
+from cityusd.pgm import rasterize_pgm, write_nav2_yaml_bundle
+from cityusd.nav2_paths import NAV2_CONNECTED
 from cityusd.rasters import write_heightmap, write_ortho, write_terrain_alignment
 from cityusd.roads import (
     MARKING_Z_M,
@@ -84,6 +86,7 @@ from cityusd.roads import (
     marking_strip_polygons,
     motor_carriageway_polygons,
     point_in_disks,
+    set_road_width_scale,
     sign_placements,
     split_line_coords_at_junctions,
     subtract_road_hierarchy,
@@ -133,7 +136,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = _parse_args(argv)
     data_dir = Path(args.data)
     out_dir = Path(args.output)
+    scale = float(getattr(args, "road_width_scale", 1.0) or 1.0)
+    prev_scale = set_road_width_scale(scale)
+    if abs(scale - 1.0) > 1e-9:
+        print(f"road_width_scale={scale}", flush=True)
+    try:
+        return _main_impl(args, data_dir, out_dir)
+    finally:
+        set_road_width_scale(prev_scale)
 
+
+def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
     found = scan_data_dir(data_dir)
     if found.osm is None:
         print("error: no OSM file found under --data; not writing output", file=sys.stderr)
@@ -264,8 +277,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             print("warning: no imagery; skipping ortho", file=sys.stderr)
 
     def _refresh_alignment() -> None:
-        pgm_path = out_dir / "nav" / "map.pgm"
-        cost_path = out_dir / "nav" / "cost.pgm"
+        pgm_path = out_dir / NAV2_CONNECTED / "map.pgm"
+        cost_path = out_dir / NAV2_CONNECTED / "cost.pgm"
         if not (heightmap_rel or ortho_rel or pgm_path.exists()):
             return
         align_path = write_terrain_alignment(
@@ -275,11 +288,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             extent=extent,
             heightmap_rel=heightmap_rel,
             ortho_rel=ortho_rel,
-            pgm_rel="./nav/map.pgm" if pgm_path.exists() else None,
-            cost_rel="./nav/cost.pgm" if cost_path.exists() else None,
+            pgm_rel=f"./{NAV2_CONNECTED}/map.pgm" if pgm_path.exists() else None,
+            cost_rel=f"./{NAV2_CONNECTED}/cost.pgm" if cost_path.exists() else None,
             heightmap_meta_path=out_dir / "terrain_src" / "heightmap_meta.json",
             ortho_meta_path=out_dir / "terrain_src" / "ortho_meta.json",
-            pgm_meta_path=out_dir / "nav" / "map_meta.json",
+            pgm_meta_path=out_dir / NAV2_CONNECTED / "map_meta.json",
         )
         print(f"terrain alignment: {align_path.relative_to(out_dir)}", flush=True)
 
@@ -395,27 +408,35 @@ def main(argv: Optional[list[str]] = None) -> int:
         trees = tree_instances(osm)
 
     if "nav" in layers:
-        print("nav PGM / costmap ...", flush=True)
-        occupied = list(bldg_geoms) + list(water_polys)
-        if ranked:
-            free = [
-                g
-                for w, g in ranked
-                if g is not None and not getattr(g, "is_empty", True) and is_motor_highway(w.tags)
-            ]
-        else:
-            print("nav: carriageway buffers as free (no pavement rebuild)", flush=True)
-            free = motor_carriageway_polygons(osm.ways)
+        print("nav PGM / costmap (connected) ...", flush=True)
+        occupied, free = collect_nav_polygons_connected(osm)
+        nav_dir = out_dir / NAV2_CONNECTED
+        nav_dir.mkdir(parents=True, exist_ok=True)
         rasterize_pgm(
             extent,
             _flatten_polys(occupied),
             _flatten_polys(free),
             float(args.pgm_resolution),
-            out_dir / "nav" / "map.pgm",
-            out_dir / "nav" / "map.yaml",
-            out_dir / "nav" / "map_meta.json",
+            nav_dir / "map.pgm",
+            nav_dir / "map_local.yaml",
+            nav_dir / "map_meta.json",
             origin,
             range_source,
+            free_all_touched=True,
+            binary_occupancy=True,
+            cost_same_as_map=True,
+        )
+        utm_e, utm_n = lonlat_to_utm(origin.lon, origin.lat, origin.epsg)
+        write_nav2_yaml_bundle(
+            nav_dir,
+            extent=extent,
+            extent_payload={
+                "utm_abs_m": {"e0": utm_e, "n0": utm_n},
+                "origin_wgs84": {"latitude": origin.lat, "longitude": origin.lon},
+            },
+            origin=origin,
+            resolution_m=float(args.pgm_resolution),
+            scene_id=scene_id,
         )
         _refresh_alignment()
 
@@ -424,11 +445,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     roof_photos: list = []
     facade_uv_modes: dict = {}
     if "buildings" in layers:
-        facade_photos, roof_photos, facade_uv_modes = bind_inbox_photos(
-            data_dir / "assets" / "AssetLibrary"
-        )
+        lib_root = resolve_asset_library_root(found.assets_dir, data_dir)
+        if lib_root is not None:
+            facade_photos, roof_photos, facade_uv_modes = bind_inbox_photos(lib_root)
+        else:
+            facade_photos, roof_photos, facade_uv_modes = {}, [], {}
         if facade_photos:
-            print("facade/roof photos (AssetLibrary inbox) ...", flush=True)
+            n_src = sum(len(v) for v in facade_photos.values())
+            print(
+                f"facade/roof photos (AssetLibrary inbox @ {lib_root.name}, {n_src} sources) ...",
+                flush=True,
+            )
         else:
             print("facade/roof photos (CC0 ambientCG fallback) ...", flush=True)
             facade_cache = data_dir / "assets" / "facades"
@@ -524,7 +551,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             raster_meta,
         )
     if "nav" in layers:
-        write_nav_layer(layers_dir / "nav.usda", "./nav/map.pgm", "./nav/map.yaml")
+        write_nav_layer(
+            layers_dir / "nav.usda",
+            f"./{NAV2_CONNECTED}/map.pgm",
+            f"./{NAV2_CONNECTED}/map_local.yaml",
+        )
     if "world" in layers:
         write_all_overlays(out_dir / "overlay")
 
@@ -548,7 +579,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         }
         meta = build_package_meta(scene_id, crs=crs)
         meta["layers"].update(city_rels)
-        meta["nav"] = {"./nav/map.pgm": "./nav/map.pgm", "map_pgm": "./nav/map.pgm", "map_yaml": "./nav/map.yaml"}
+        meta["nav"] = {
+            "map_pgm": f"./{NAV2_CONNECTED}/map.pgm",
+            "map_yaml": f"./{NAV2_CONNECTED}/map_local.yaml",
+            "map_yaml_utm": f"./{NAV2_CONNECTED}/map.yaml",
+            "valhalla_origin": f"./{NAV2_CONNECTED}/valhalla_origin.yaml",
+            "cost_pgm": f"./{NAV2_CONNECTED}/cost.pgm",
+        }
         write_meta(out_dir / "meta.json", meta)
 
         descriptions = [str(p) for p in found.descriptions]
@@ -674,6 +711,12 @@ def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
         "--pipeline-mode",
         action="store_true",
         help="City geometry layers only for build_scene_pipeline (no nav/terrain/world/meta)",
+    )
+    parser.add_argument(
+        "--road-width-scale",
+        type=float,
+        default=1.0,
+        help="Multiply OSM/inferred road widths (and carriageway drop distance). Default 1.0",
     )
     return parser.parse_args(argv)
 

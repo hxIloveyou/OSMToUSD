@@ -507,7 +507,7 @@ def write_nav_layer(path: Path, pgm_rel: Optional[str], yaml_rel: Optional[str])
         {
             "map_pgm": pgm_rel or "",
             "map_yaml": yaml_rel or "",
-            "cost_pgm": "./nav/cost.pgm",
+            "cost_pgm": "./nav2/connected/cost.pgm",
             "alignment_json": "./terrain_src/alignment.json",
         }
     )

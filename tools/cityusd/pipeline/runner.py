@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from cityusd.pipeline.assemble_world import run_assemble_world
+from cityusd.pipeline.nav2_nature import run_nav2_nature
 from cityusd.pipeline.nav_pgm import run_nav_pgm
 from cityusd.pipeline.osm_city_usd import run_osm_city_usd
 from cityusd.pipeline.osm_labels import run_osm_labels
@@ -14,6 +15,7 @@ from cityusd.pipeline.overlay import run_overlay
 from cityusd.pipeline.package_zip import run_package_zip
 from cityusd.pipeline.terrain import run_terrain
 from cityusd.pipeline.resolve_extent import resolve_extent, write_extent_json
+from cityusd.pipeline.package_backup import prepare_release_run
 from cityusd.pipeline.schema import PipelineConfig, load_step_config_ref, write_manifest
 
 LogFn = Callable[[str], None]
@@ -38,7 +40,7 @@ def _input_hash(
         if step and (step.config_ref or step.config):
             blob["step_config"] = load_step_config_ref(cfg, step, package_dir)
     if package_dir is not None and (package_dir / "extent.json").is_file():
-        if step_name in (None, "terrain", "nav_pgm", "osm_city_usd", "osm_labels"):
+        if step_name in (None, "terrain", "nav_pgm", "nav2_nature", "osm_city_usd", "osm_labels"):
             blob["extent"] = json.loads((package_dir / "extent.json").read_text(encoding="utf-8"))
     return "sha256:" + hashlib.sha256(
         json.dumps(blob, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
@@ -95,6 +97,11 @@ def _run_nav_pgm_step(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> tup
     return None, outputs
 
 
+def _run_nav2_nature_step(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> tuple[None, list[str]]:
+    outputs = run_nav2_nature(cfg, package_dir, log)
+    return None, outputs
+
+
 def _run_overlay_step(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> tuple[None, list[str]]:
     outputs = run_overlay(cfg, package_dir, log)
     return None, outputs
@@ -116,6 +123,7 @@ STEP_RUNNERS = {
     "osm_city_usd": _run_osm_city_usd_step,
     "osm_labels": _run_osm_labels_step,
     "nav_pgm": _run_nav_pgm_step,
+    "nav2_nature": _run_nav2_nature_step,
     "overlay": _run_overlay_step,
     "assemble_world": _run_assemble_world_step,
     "package_zip": _run_package_zip_step,
@@ -129,6 +137,8 @@ def run_pipeline(
     resume: bool = False,
     log: LogFn = _log_default,
 ) -> Path:
+    prepare_release_run(cfg, log)
+
     package_dir = cfg.package_dir()
     package_dir.mkdir(parents=True, exist_ok=True)
 

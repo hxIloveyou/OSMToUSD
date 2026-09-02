@@ -116,7 +116,7 @@ def test_m4_overlay_assemble_zip_tiny_osm(tmp_path: Path) -> None:
         names = set(zf.namelist())
     assert "World_test_m4.usda" in names
     assert "meta.json" in names
-    assert "nav/map.pgm" in names
+    assert "nav2/connected/map.pgm" in names
 
     manifest = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))
     for step in ("overlay", "assemble_world", "package_zip"):

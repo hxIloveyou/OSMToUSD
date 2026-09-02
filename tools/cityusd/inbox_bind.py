@@ -6,6 +6,8 @@ from pathlib import Path
 
 from cityusd.inbox_assets import INBOX_REL
 
+from cityusd.inbox_assets import INBOX_REL
+
 BAND_FOLDERS: dict[str, list[str]] = {
     "low": [
         "facades/sheets/shopfront",
@@ -20,10 +22,12 @@ BAND_FOLDERS: dict[str, list[str]] = {
     "high": [
         "facades/sheets/office",
         "facades/tileable/midrise",
+        "facades/tileable/highrise",
     ],
     "tower": [
         "facades/sheets/office",
         "facades/sheets/residential",
+        "facades/tileable/highrise",
     ],
 }
 
@@ -117,6 +121,29 @@ def inbox_roof_sources(library_dir: Path) -> list[Path]:
 
 def default_inbox_library() -> Path:
     return Path(__file__).resolve().parents[2] / "data" / "assets" / "AssetLibrary"
+
+
+def resolve_asset_library_root(
+    assets_dir: Path | None = None,
+    data_dir: Path | None = None,
+) -> Path | None:
+    """Find AssetLibrary root containing materials/buildings/inbox."""
+    candidates: list[Path] = []
+    if assets_dir is not None:
+        candidates.append(Path(assets_dir))
+        candidates.append(Path(assets_dir) / "AssetLibrary")
+    if data_dir is not None:
+        base = Path(data_dir) / "assets"
+        for p in (base, base / "AssetLibrary"):
+            if p not in candidates:
+                candidates.append(p)
+    default = default_inbox_library()
+    if default not in candidates:
+        candidates.append(default)
+    for root in candidates:
+        if (root / INBOX_REL).is_dir():
+            return root
+    return None
 
 
 def bind_inbox_photos(

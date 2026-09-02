@@ -15,8 +15,8 @@ def test_tiny_package(tmp_path):
     world = next(out.glob("World_*.usda"))
     stage = Usd.Stage.Open(str(world))
     assert stage.GetDefaultPrim().GetName() == "World"
-    assert (out / "nav" / "map.pgm").exists()
-    assert (out / "nav" / "map.yaml").exists()
+    assert (out / "nav2" / "connected" / "map.pgm").exists()
+    assert (out / "nav2" / "connected" / "map_local.yaml").exists()
     meta = json.loads((out / "meta.json").read_text(encoding="utf-8"))
     assert meta["units"]["meters_per_unit"] == 0.01
     assert (out / "overlay" / "equipment.usda").exists()

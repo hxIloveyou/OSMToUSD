@@ -125,6 +125,9 @@ def run_osm_city_usd(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list
         str(package_dir / "extent.json"),
         "--pipeline-mode",
     ]
+    scale = step_cfg.get("road_width_scale")
+    if scale is not None:
+        argv.extend(["--road-width-scale", str(scale)])
     rc = build_city_usd.main(argv)
     if rc != 0:
         raise RuntimeError(f"build_city_usd exited with code {rc}")

@@ -1,5 +1,6 @@
-# Taipei UE Scene Package — date-stamped scene id
-schema_version: "0.2"
+# Taipei UE Scene Package — frozen scene id (repro / incremental only)
+# For a new dated release + backup of older packages, use examples/taibei_ue.pipeline.yaml
+schema_version: "0.3"
 extends:
   - taibei_ue.pipeline.yaml
 

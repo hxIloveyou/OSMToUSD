@@ -95,3 +95,79 @@ def test_free_road_wins_over_building_overlap(tmp_path):
     assert grid[cy, cx] == FREE
     # Building corner away from road: (0, 8) → col=50, row = (50-8)=42
     assert grid[42, 50] == OCCUPIED
+
+
+def test_cost_same_as_map(tmp_path):
+    extent = ExtentM(-50, -50, 50, 50)
+    occ = [box(-10, -10, 10, 10)]
+    free = [box(-40, -2, 40, 2)]
+    o = make_origin(119.0, 36.0)
+    rasterize_pgm(
+        extent,
+        occ,
+        free,
+        1.0,
+        tmp_path / "map.pgm",
+        tmp_path / "map_local.yaml",
+        tmp_path / "map_meta.json",
+        o,
+        "connected_test",
+        free_all_touched=True,
+        binary_occupancy=True,
+        cost_same_as_map=True,
+    )
+    assert (tmp_path / "map.pgm").read_bytes() == (tmp_path / "cost.pgm").read_bytes()
+
+
+def test_write_nav2_yaml_bundle(tmp_path):
+    from cityusd.pgm import write_nav2_yaml_bundle
+
+    from cityusd.types import Origin
+
+    extent = ExtentM(-100.0, -50.0, 100.0, 50.0)
+    o = Origin(lon=121.532933, lat=25.047453, height_m=0.0, epsg=32651)
+    payload = {
+        "utm_abs_m": {"e0": 352005.156, "n0": 2771004.448},
+        "origin_wgs84": {"latitude": 25.047453, "longitude": 121.532933},
+    }
+    write_nav2_yaml_bundle(
+        tmp_path,
+        extent=extent,
+        extent_payload=payload,
+        origin=o,
+        resolution_m=1.0,
+        scene_id="test_scene",
+    )
+    local = (tmp_path / "map_local.yaml").read_text(encoding="utf-8")
+    utm = (tmp_path / "map.yaml").read_text(encoding="utf-8")
+    val = (tmp_path / "valhalla_origin.yaml").read_text(encoding="utf-8")
+    assert "origin: [-100.0, -50.0, 0.0]" in local
+    assert "origin: [351905.156" in utm
+    assert "valhalla_origin:" in val
+    assert "utm_zone: 51" in val
+
+
+def test_connected_binary_no_unknown(tmp_path):
+    """Connected mode: all_touched + binary background leaves no unknown gaps."""
+    extent = ExtentM(-50, -50, 50, 50)
+    occ = [box(-10, -10, 10, 10)]
+    free = [box(-40, -2, 40, 2), box(-2, -2, 2, 40)]
+    o = make_origin(119.0, 36.0)
+    from cityusd.pgm import UNKNOWN
+
+    rasterize_pgm(
+        extent,
+        occ,
+        free,
+        1.0,
+        tmp_path / "map2.pgm",
+        tmp_path / "map2.yaml",
+        tmp_path / "map2_meta.json",
+        o,
+        "connected_test",
+        free_all_touched=True,
+        binary_occupancy=True,
+    )
+    grid = _load_pgm(tmp_path / "map2.pgm")
+    assert int((grid == UNKNOWN).sum()) == 0
+    assert grid[50, 50] == FREE

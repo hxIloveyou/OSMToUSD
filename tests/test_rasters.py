@@ -67,11 +67,11 @@ def test_heightmap_written(tmp_path):
         extent=extent,
         heightmap_rel="./h.png",
         heightmap_meta_path=tmp_path / "h.json",
-        pgm_rel="./nav/map.pgm",
-        cost_rel="./nav/cost.pgm",
+        pgm_rel="./nav2/connected/map.pgm",
+        cost_rel="./nav2/connected/cost.pgm",
         pgm_meta_path=pgm_meta,
     )
     ap2 = json.loads(align2.read_text(encoding="utf-8"))
-    assert ap2["costmap"]["cost_pgm"] == "./nav/cost.pgm"
+    assert ap2["costmap"]["cost_pgm"] == "./nav2/connected/cost.pgm"
     assert ap2["costmap"]["cost_values"]["lethal"] == 254
     assert ap2["shared_frame"]["extent_m_is_common"] is True
