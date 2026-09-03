@@ -110,6 +110,18 @@ from cityusd.usd_write import (
     write_terrain_layer,
     reference_prototype_layer,
 )
+from cityusd.cull import (
+    CULL_ARROW_END_M,
+    CULL_ARROW_START_M,
+    CULL_LAMP_END_M,
+    CULL_LAMP_START_M,
+    CULL_SIGN_END_M,
+    CULL_SIGN_START_M,
+    CULL_TREE_END_M,
+    CULL_TREE_START_M,
+    cull_policy_summary,
+    instancer_cull_custom_data,
+)
 from cityusd.water_veg import vegetation_polygons, water_polygons
 from pxr import UsdGeom
 
@@ -1175,7 +1187,14 @@ def _write_vegetation_layer(stage, veg_polys, trees, stats: BuildStats, tex: dic
     if trees:
         positions = [(x * CM_PER_M, y * CM_PER_M, 0.0) for x, y, _yaw in trees]
         yaws = [yaw for _x, _y, yaw in trees]
-        write_point_instancer(stage, "/World/City/Vegetation/I_Trees", tree_proto, positions, yaws)
+        write_point_instancer(
+            stage,
+            "/World/City/Vegetation/I_Trees",
+            tree_proto,
+            positions,
+            yaws,
+            cull_custom_data=instancer_cull_custom_data(CULL_TREE_START_M, CULL_TREE_END_M),
+        )
         stats.trees = len(trees)
 
 
@@ -1311,10 +1330,19 @@ def _write_roads_layer(
         z_cm = (LAYER_Z_M["roads"] + 0.03) * CM_PER_M
         positions = [(a["xy"][0] * CM_PER_M, a["xy"][1] * CM_PER_M, z_cm) for a in arrows]
         yaws = [a["yaw_rad"] for a in arrows]
-        write_point_instancer(stage, "/World/City/Roads/Arrows/I_Arrows", proto, positions, yaws)
+        write_point_instancer(
+            stage,
+            "/World/City/Roads/Arrows/I_Arrows",
+            proto,
+            positions,
+            yaws,
+            cull_custom_data=instancer_cull_custom_data(CULL_ARROW_START_M, CULL_ARROW_END_M),
+        )
         inst_prim = stage.GetPrimAtPath("/World/City/Roads/Arrows/I_Arrows")
         if inst_prim and inst_prim.IsValid():
-            inst_prim.SetCustomData({"kind": "decal", "collisionEnabled": False})
+            cd = dict(inst_prim.GetCustomData() or {})
+            cd.update({"kind": "decal", "collisionEnabled": False})
+            inst_prim.SetCustomData(cd)
         stats.arrows = len(arrows)
 
 
@@ -1323,7 +1351,21 @@ def _write_buildings_layer(
 ) -> None:
     uv_map = uv_map or {}
     UsdGeom.Xform.Define(stage, "/World/City")
-    UsdGeom.Xform.Define(stage, "/World/City/Buildings")
+    bldg_xf = UsdGeom.Xform.Define(stage, "/World/City/Buildings")
+    policy = cull_policy_summary()
+    # Flat keys only — nested list/dict can fail in USD customData.
+    bldg_xf.GetPrim().SetCustomData(
+        {
+            "cull_policy_note": str(policy.get("note") or ""),
+            "cull_building_m": float(policy.get("building_m") or 0.0),
+            "cull_lamp_start_m": float(policy["lamp_m"][0]) if policy.get("lamp_m") else 0.0,
+            "cull_lamp_end_m": float(policy["lamp_m"][1]) if policy.get("lamp_m") else 0.0,
+            "cull_sign_start_m": float(policy["sign_m"][0]) if policy.get("sign_m") else 0.0,
+            "cull_sign_end_m": float(policy["sign_m"][1]) if policy.get("sign_m") else 0.0,
+            "cull_arrow_start_m": float(policy["arrow_m"][0]) if policy.get("arrow_m") else 0.0,
+            "cull_arrow_end_m": float(policy["arrow_m"][1]) if policy.get("arrow_m") else 0.0,
+        }
+    )
     for band in ("low", "mid", "high", "tower"):
         write_preview_material(
             stage,
@@ -1473,7 +1515,14 @@ def _write_lamps_layer(stage, lamps, stats: BuildStats) -> None:
     if lamps:
         positions = [(x * CM_PER_M, y * CM_PER_M, 0.0) for x, y, _yaw in lamps]
         yaws = [yaw for _x, _y, yaw in lamps]
-        write_point_instancer(stage, "/World/City/Lamps/I_Lamps", lamp_proto, positions, yaws)
+        write_point_instancer(
+            stage,
+            "/World/City/Lamps/I_Lamps",
+            lamp_proto,
+            positions,
+            yaws,
+            cull_custom_data=instancer_cull_custom_data(CULL_LAMP_START_M, CULL_LAMP_END_M),
+        )
         stats.lamps = len(lamps)
 
 
@@ -1511,6 +1560,7 @@ def _write_signs_layer(stage, signs, stats: BuildStats, textures_dir: Path) -> N
             proto_xf,
             positions,
             yaws,
+            cull_custom_data=instancer_cull_custom_data(CULL_SIGN_START_M, CULL_SIGN_END_M),
         )
         sign_count += len(items)
     stats.signs = sign_count

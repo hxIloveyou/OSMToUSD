@@ -94,7 +94,7 @@ def test_mesh_writes_uvs_and_textured_material(tmp_path):
     assert shader.IsValid()
 
 
-def test_building_cell_splits_roof_into_own_mesh(tmp_path):
+def test_building_cell_keeps_walls_and_roof_as_geomsubsets(tmp_path):
     path = tmp_path / "cell.usda"
     stage = configure_stage(path)
     write_preview_material(stage, "/World/Looks/Facade_mid_0", (0.72, 0.58, 0.42))
@@ -124,11 +124,15 @@ def test_building_cell_splits_roof_into_own_mesh(tmp_path):
     write_building_cell(stage, 0, 0, {"LOD0": payload}, suffix="mid_0")
     stage.GetRootLayer().Save()
     opened = Usd.Stage.Open(str(path))
-    wall = UsdGeom.Mesh(opened.GetPrimAtPath("/World/City/Buildings/c0_0_mid_0/LOD0"))
-    roof = UsdGeom.Mesh(opened.GetPrimAtPath("/World/City/Buildings/c0_0_mid_0/LOD0_Roof"))
-    assert wall.GetPrim().IsValid()
-    assert roof.GetPrim().IsValid()
-    assert wall.GetDisplayColorAttr().Get()[0][0] > 0.6
-    assert roof.GetDisplayColorAttr().Get()[0][0] < 0.4
-    assert not opened.GetPrimAtPath("/World/City/Buildings/c0_0_mid_0/LOD0/Roof").IsValid()
-
+    mesh_prim = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0")
+    assert mesh_prim.IsValid() and mesh_prim.IsA(UsdGeom.Mesh)
+    assert not opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0_Roof").IsValid()
+    walls = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0/Walls")
+    roof = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0/Roof")
+    assert walls.IsValid() and walls.GetTypeName() == "GeomSubset"
+    assert roof.IsValid() and roof.GetTypeName() == "GeomSubset"
+    mesh = UsdGeom.Mesh(mesh_prim)
+    assert len(mesh.GetFaceVertexCountsAttr().Get()) == 2
+    assert mesh.GetDisplayColorAttr().Get()[0][0] > 0.6
+    parent_cd = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0").GetCustomData()
+    assert parent_cd.get("building_mesh_mode") == "closed_mesh_geomsubset"

@@ -124,7 +124,11 @@ def build_package_meta(
         "lamp_instancer": True,
         "sign_instancer": True,
         "prototype_swap": True,
-        "capabilities": {"has_building_lod": True},
+        "capabilities": {
+            "has_building_lod": True,
+            "building_mesh_mode": "closed_mesh_geomsubset",
+            "distance_cull_metadata": True,
+        },
     }
     payload.update(overrides)
     return payload

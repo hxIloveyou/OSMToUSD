@@ -8,6 +8,14 @@ from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 from cityusd.types import RasterMeta
 
+try:
+    from cityusd.cull import CULL_BUILDING_M, mesh_cull_custom_data
+except ImportError:  # pragma: no cover
+    CULL_BUILDING_M = 1200.0
+
+    def mesh_cull_custom_data(end_m: float) -> dict:
+        return {"cull_distance_m": float(end_m), "cull_distance_cm": float(end_m) * 100.0}
+
 METERS_PER_UNIT = 0.01
 
 
@@ -110,6 +118,7 @@ def write_point_instancer(
     positions_cm,
     yaws_rad,
     proto_indices=None,
+    cull_custom_data: Optional[dict] = None,
 ) -> None:
     instancer = UsdGeom.PointInstancer.Define(stage, path)
     proto_paths = [proto_prim_path] if isinstance(proto_prim_path, str) else list(proto_prim_path)
@@ -135,6 +144,11 @@ def write_point_instancer(
         orients.append(Gf.Quath(math.cos(half), 0.0, 0.0, math.sin(half)))
     instancer.CreateOrientationsAttr(orients)
     instancer.CreateScalesAttr([Gf.Vec3f(1.0, 1.0, 1.0)] * n)
+    if cull_custom_data:
+        prim = instancer.GetPrim()
+        existing = dict(prim.GetCustomData() or {})
+        existing.update(cull_custom_data)
+        prim.SetCustomData(existing)
 
 
 def write_placeholder_prototype(
@@ -371,7 +385,7 @@ def write_building_cell(
     iy: int,
     lod_meshes: dict,
     switch_distance_m=0.0,
-    cell_size_m: float = 200.0,
+    cell_size_m: float = 400.0,
     material_path: Optional[str] = BUILDING_MATERIAL_PATH,
     suffix: str = "",
 ) -> str:
@@ -382,14 +396,16 @@ def write_building_cell(
     else:
         parent_path = f"/World/City/Buildings/c{cs}_{_cell_token(ix)}_{_cell_token(iy)}{extra}"
     parent = UsdGeom.Xform.Define(stage, parent_path)
-    parent.GetPrim().SetCustomData(
-        {
-            "switch_distance_m": switch_distance_m,
-            "cell_size_m": float(cs),
-            "lod": ["LOD0", "LOD1", "LOD2"],
-            "switch_distance_m_lod": {"LOD0": 0.0, "LOD1": 1500.0, "LOD2": 6000.0},
-        }
-    )
+    cull_cd = mesh_cull_custom_data(CULL_BUILDING_M)
+    parent_cd = {
+        "switch_distance_m": switch_distance_m,
+        "cell_size_m": float(cs),
+        "lod": ["LOD0", "LOD1", "LOD2"],
+        "switch_distance_m_lod": {"LOD0": 0.0, "LOD1": 1500.0, "LOD2": 6000.0},
+        "building_mesh_mode": "closed_mesh_geomsubset",
+    }
+    parent_cd.update(cull_cd)
+    parent.GetPrim().SetCustomData(parent_cd)
     lod_switch = {"LOD0": 0.0, "LOD1": 1500.0, "LOD2": 6000.0}
     for name in ("LOD0", "LOD1", "LOD2"):
         mesh = lod_meshes.get(name) if lod_meshes else None
@@ -401,74 +417,29 @@ def write_building_cell(
         color = mesh[5] if len(mesh) > 5 else None
         subsets = mesh[6] if len(mesh) > 6 else None
         mesh_path = f"{parent_path}/{name}"
-        roof_color = (0.28, 0.29, 0.30)
-        try:
-            from cityusd.looks import ROOF_DISPLAY_RGB
-
-            roof_color = ROOF_DISPLAY_RGB
-        except Exception:
-            pass
-        roof_faces = None
-        wall_faces = None
-        roof_mat = None
-        wall_mat = mat
-        if subsets:
-            if "Roof" in subsets:
-                roof_faces, roof_mat = subsets["Roof"][0], subsets["Roof"][1]
-            if "Walls" in subsets:
-                wall_faces, wall_mat = subsets["Walls"][0], subsets["Walls"][1] or mat
-        if roof_faces:
-            if wall_faces:
-                wp, wc, wi, wu = extract_face_submesh(
-                    points_cm, face_counts, face_indices, uvs, wall_faces
-                )
-                if wp:
-                    write_mesh(
-                        stage,
-                        mesh_path,
-                        wp,
-                        wc,
-                        wi,
-                        wall_mat,
-                        uvs=wu,
-                        display_color=color,
-                        double_sided=True,
-                    )
-            rp, rc, ri, ru = extract_face_submesh(
-                points_cm, face_counts, face_indices, uvs, roof_faces
-            )
-            if rp:
-                roof_path = f"{mesh_path}_Roof"
-                write_mesh(
-                    stage,
-                    roof_path,
-                    rp,
-                    rc,
-                    ri,
-                    roof_mat,
-                    uvs=ru,
-                    display_color=roof_color,
-                    double_sided=True,
-                )
-                rprim = stage.GetPrimAtPath(roof_path)
-                if rprim and rprim.IsValid():
-                    rprim.SetCustomData({"lodLevel": int(name[-1]), "part": "roof"})
-        else:
-            write_mesh(
-                stage,
-                mesh_path,
-                points_cm,
-                face_counts,
-                face_indices,
-                mat,
-                uvs=uvs,
-                display_color=color,
-                subsets=subsets,
-                double_sided=True,
-            )
+        # One closed mesh: Walls/Roof share geometry; materials via GeomSubset.
+        # (Splitting into LOD0 + LOD0_Roof doubles Mesh/draw/BLAS count.)
+        write_mesh(
+            stage,
+            mesh_path,
+            points_cm,
+            face_counts,
+            face_indices,
+            mat,
+            uvs=uvs,
+            display_color=color,
+            subsets=subsets,
+            double_sided=True,
+        )
         prim = stage.GetPrimAtPath(mesh_path)
         if prim and prim.IsValid():
-            prim.SetCustomData({"lodLevel": int(name[-1]), "switch_distance_m": lod_switch[name]})
+            mesh_cd = {
+                "lodLevel": int(name[-1]),
+                "switch_distance_m": lod_switch[name],
+                "meshParts": "Walls+Roof",
+            }
+            mesh_cd.update(cull_cd)
+            prim.SetCustomData(mesh_cd)
     return parent_path
 
 
