@@ -199,6 +199,7 @@ def resolve_extent(
     frame: dict[str, Any],
     inputs: dict[str, Any],
     project_root: Optional[Path] = None,
+    input_dirs: Optional[list[Path]] = None,
 ) -> dict[str, Any]:
     """Compute final WGS84 extent and local meters extent (schema v0.2)."""
     origin_cfg = frame.get("origin_wgs84") or {}
@@ -226,17 +227,23 @@ def resolve_extent(
     dem_in = inputs.get("dem") or {}
     ortho_in = inputs.get("ortho") or {}
 
+    search_roots: list[Path] = []
+    if input_dirs:
+        search_roots.extend(Path(p) for p in input_dirs)
+    if project_root is not None:
+        search_roots.append(Path(project_root))
+
     def _resolve_input_path(raw: Optional[str]) -> Optional[Path]:
         if not raw:
             return None
         p = Path(raw).expanduser()
         if p.is_absolute():
-            return p
-        if project_root is not None:
-            cand = (project_root / p).resolve()
-            if cand.is_file():
-                return cand
-        return p
+            return p if p.is_file() else p
+        for root in search_roots:
+            for cand in ((root / p).resolve(), (root / p.name).resolve()):
+                if cand.is_file():
+                    return cand
+        return (search_roots[0] / p).resolve() if search_roots else p
 
     osm_path = _resolve_input_path(osm_in.get("path"))
     dem_path = _resolve_input_path(dem_in.get("path"))

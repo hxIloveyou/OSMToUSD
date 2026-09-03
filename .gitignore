@@ -8,15 +8,23 @@ __pycache__/
 .venv/
 venv/
 
-# Generated Scene Packages (back up outside git)
+# Legacy + generated packages
 output/
 tools.zip
 
-# Scratch archives outside data/
+# SceneData generated USD / 2D cost (keep 3D placeholder)
+SceneData/*/output/USD/
+SceneData/*/output/CostMap/2D/
+!SceneData/*/output/CostMap/3D/
+!SceneData/*/output/CostMap/3D/.gitkeep
+
+# Scratch archives
 *.zip
 !data/**/*.zip
+!SceneData/**/*.zip
+!tools/assets/**/*.zip
 
-# Image dumps outside the versioned AssetLibrary
+# Image dumps outside versioned asset libraries
 *.jpg
 *.jpeg
 *.png
@@ -25,6 +33,19 @@ tools.zip
 *.bmp
 !data/assets/AssetLibrary/
 !data/assets/AssetLibrary/**
+!tools/assets/
+!tools/assets/**
+
+# Geospatial heavies (tracked via LFS when force-added)
+*.tif
+*.tiff
+*.osm.pbf
+!SceneData/**/*.tif
+!SceneData/**/*.tiff
+!SceneData/**/*.osm.pbf
+!data/**/*.tif
+!data/**/*.tiff
+!data/**/*.osm.pbf
 
 # Compiled USD layers
 *.usdc

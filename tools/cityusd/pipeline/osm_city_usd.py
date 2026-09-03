@@ -27,11 +27,17 @@ def _resolve_input(cfg: PipelineConfig, key: str) -> Path | None:
     if not raw:
         return None
     p = Path(str(raw)).expanduser()
-    if not p.is_absolute():
-        cand = (cfg.project_root / p).resolve()
+    if p.is_absolute():
+        return p if p.is_file() else None
+    candidates = [
+        (cfg.project_root / p).resolve(),
+        (cfg.input_dir() / p).resolve(),
+        (cfg.input_dir() / p.name).resolve(),
+    ]
+    for cand in candidates:
         if cand.is_file():
             return cand
-    return p if p.is_file() else None
+    return None
 
 
 def _layers_from_config(step_cfg: dict) -> str:

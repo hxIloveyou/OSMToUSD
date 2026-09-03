@@ -1,6 +1,8 @@
-# Pipeline preset — Taipei UE release (CityUsd layout v0.2)
+# Pipeline preset — Taipei UE (SceneData layout)
 
 scene:
+  id: taibei_ue
+  title: Taipei UE release
   id_pattern: "taibei_ue_{timestamp}"
 
 frame:
@@ -21,23 +23,23 @@ frame:
 
 inputs:
   osm:
-    path: data/osm/taibei.osm.pbf
+    path: osm/taibei.osm.pbf
     clip_to_extent: true
   dem:
-    path: data/dem/cliptb.tif
+    path: dem/cliptb.tif
     optional: false
   ortho:
-    path: data/imagery/taibei.tif
+    path: imagery/taibei.tif
     optional: true
   asset_library:
-    path: data/assets/AssetLibrary
+    path: tools/assets/AssetLibrary
   scene_description:
-    path: data/uploads/demo_overlay_full_description.json
+    path: uploads/demo_overlay_full_description.json
     optional: true
 
 output:
-  dir: output/ScenePackages
   layout: cityusd_v1
+  # dir omitted → SceneData/{scene.id}/output
 
 pipeline:
   - step: terrain
@@ -75,3 +77,4 @@ runtime:
   on_step_fail: stop
   resume: false
   write_intermediate_configs: true
+  backup_previous_packages: false

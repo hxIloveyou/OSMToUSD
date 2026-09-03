@@ -3,53 +3,63 @@
 CityUsd / USDManager 共用的 **Scene Package 构建契约**。  
 实现入口：`tools/build_scene_pipeline.py`。
 
-## 相对 v0.2 的变更
+## 相对 v0.2 / 早期 v0.3 的变更
 
-1. **导航产物**统一在 `nav2/connected/`（connected 二值 PGM + 完整 YAML 包）。
-2. 根目录 **`nav/` 不再由 pipeline 写入**（遗留包可保留，用户自行清理）。
-3. 新增 **`nav2_nature`** step：从 `terrain/dem_utm.tif` 生成 `nav2/nature/`（BMP + 坡度 PGM + `nature_bmp.yaml`）。
-4. 实验版栅格（3m、mppi、roads_x* 等）**不自动生成**；手动脚本输出到 `nav2/variants/<name>/`。
+1. **场景根目录**改为 `SceneData/{scene_id}/`（不再默认写入 `output/ScenePackages/`）。
+2. **USD 与 CostMap 分离**：
+   - `output/USD/` — World、layers、textures、catalog…
+   - `output/CostMap/2D/` — 原 `nav2/*`（connected / nature / variants / dem）
+   - `output/CostMap/3D/` — 预留空目录（外部 3D cost 工具）
+3. **共享资产**在 `tools/assets/`（跨场景），不进 SceneData。
+4. 场景级对齐元数据：`SceneData/{id}/scene_alignment.json`（CostMap/2D 下有镜像）。
 
-## 目录布局（cityusd_v1 + nav2）
+## 目录布局
 
-```
-ScenePackages/<scene_id>/
-  terrain/
-  nav2/
-    connected/
-    nature/
-    dem/
-    variants/
-  layers/
-  ...
+```text
+SceneData/<scene_id>/
+  input/{osm,dem,imagery}/
+  output/
+    USD/
+      World_*.usda
+      layers/
+      meta.json
+      …
+    CostMap/
+      2D/
+        connected/
+        nature/
+        dem/
+        variants/          # 手动实验栅格
+      3D/                  # placeholder
+  scene_alignment.json
 ```
 
 ## Step 列表
 
 | Step | 说明 |
 |------|------|
-| `nav_pgm` | OSM connected → `nav2/connected/` |
-| `nav2_nature` | DEM 坡度 → `nav2/nature/` |
+| `nav_pgm` | OSM connected → `CostMap/2D/connected/` |
+| `nav2_nature` | DEM 坡度 → `CostMap/2D/nature/` |
+| `package_zip` | 打包整个 `output/`（USD + CostMap） |
 
-## meta.json nav 字段
+## meta.json nav 字段（相对 USD 根）
 
 ```json
 "nav": {
-  "map_pgm": "./nav2/connected/map.pgm",
-  "map_yaml": "./nav2/connected/map_local.yaml",
-  "map_yaml_utm": "./nav2/connected/map.yaml",
-  "valhalla_origin": "./nav2/connected/valhalla_origin.yaml",
-  "cost_pgm": "./nav2/connected/cost.pgm"
+  "map_pgm": "../CostMap/2D/connected/map.pgm",
+  "map_yaml": "../CostMap/2D/connected/map_local.yaml",
+  "map_yaml_utm": "../CostMap/2D/connected/map.yaml",
+  "valhalla_origin": "../CostMap/2D/connected/valhalla_origin.yaml",
+  "cost_pgm": "../CostMap/2D/connected/cost.pgm"
 }
 ```
 
-## 发布工作流（dated scene id + 备份）
+## 发布工作流
 
-- `examples/taibei_ue.pipeline.yaml`：`scene.id` 为空，`runtime.scene_id_stamp: date` → `taibei_ue_YYYYMMDD`
-- `runtime.backup_previous_packages: true`：跑前将 `output/ScenePackages/` 下其他 `taibei_ue_*` 目录 zip 到 `backups/`
-- 固定 id 复现/增量：用 `examples/taibei_ue_20260831.pipeline.yaml`（不自动备份 sibling）
+- `examples/taibei_ue.pipeline.yaml`：固定 `scene.id: taibei_ue`，写入 `SceneData/taibei_ue/`
+- `runtime.backup_previous_packages: true`：备份 `SceneData/` 下同前缀的其它场景目录
+- 遗留包仍可读：`output/ScenePackages/`（勿删直至验证完成）
 
 ```bash
-python tools/build_scene_pipeline.py --preset taibei_ue
-python tools/build_scene_pipeline.py --config examples/taibei_ue.pipeline.yaml --release
+python tools/build_scene_pipeline.py --config examples/taibei_ue.pipeline.yaml
 ```

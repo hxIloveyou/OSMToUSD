@@ -3,13 +3,12 @@ extends:
   - ../presets/taibei_ue.yaml
 
 scene:
-  id: ""
+  id: taibei_ue
   title: "Taipei UE release"
 
 runtime:
-  scene_id_stamp: date
-  backup_previous_packages: true
-  backup_self_if_exists: true
+  backup_previous_packages: false
+  backup_self_if_exists: false
   backup_dir: backups
 
 pipeline:

@@ -325,10 +325,10 @@ def _costmap_from_sidecar(
         }
     res = float(mpp[0]) if mpp else None
     layer = {
-        "occupancy_pgm": (occupancy_rel or "./nav2/connected/map.pgm").replace("\\", "/"),
-        "cost_pgm": (cost_rel or "./nav2/connected/cost.pgm").replace("\\", "/"),
-        "ros_yaml": "./nav2/connected/map_local.yaml",
-        "meta_json": "./nav2/connected/map_meta.json",
+        "occupancy_pgm": (occupancy_rel or "../CostMap/2D/connected/map.pgm").replace("\\", "/"),
+        "cost_pgm": (cost_rel or "../CostMap/2D/connected/cost.pgm").replace("\\", "/"),
+        "ros_yaml": "../CostMap/2D/connected/map_local.yaml",
+        "meta_json": "../CostMap/2D/connected/map_meta.json",
         "format": "P5 8-bit",
         "sampling": "cell",
         "size_px": size_px,

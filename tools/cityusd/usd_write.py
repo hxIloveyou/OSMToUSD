@@ -471,14 +471,19 @@ def write_terrain_layer(
     stage.GetRootLayer().Save()
 
 
-def write_nav_layer(path: Path, pgm_rel: Optional[str], yaml_rel: Optional[str]) -> None:
+def write_nav_layer(
+    path: Path,
+    pgm_rel: Optional[str],
+    yaml_rel: Optional[str],
+    cost_rel: Optional[str] = None,
+) -> None:
     stage = configure_stage(path)
     xf = UsdGeom.Xform.Define(stage, "/World/Nav")
     xf.GetPrim().SetCustomData(
         {
             "map_pgm": pgm_rel or "",
             "map_yaml": yaml_rel or "",
-            "cost_pgm": "./nav2/connected/cost.pgm",
+            "cost_pgm": cost_rel or (pgm_rel or "").replace("map.pgm", "cost.pgm"),
             "alignment_json": "./terrain_src/alignment.json",
         }
     )

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 from cityusd.pipeline.schema import PipelineConfig
+from cityusd.scene_layout import SCENE_DATA_DIRNAME
 
 LogFn = Callable[[str], None]
 
@@ -53,21 +54,30 @@ def backup_package(
     return zip_path
 
 
+def _sibling_scan_root(cfg: PipelineConfig) -> Path:
+    """Where sibling packages live: SceneData/ or legacy ScenePackages/."""
+    od = Path(cfg.output_dir)
+    if od.name == "output" and od.parent.parent.name == SCENE_DATA_DIRNAME:
+        return od.parent.parent
+    return od
+
+
 def backup_previous_packages(cfg: PipelineConfig, log: LogFn) -> list[Path]:
     """Zip other packages with the same id prefix (e.g. taibei_ue_*), excluding current scene_id."""
     rt = cfg.runtime
     if not bool(rt.get("backup_previous_packages", False)):
         return []
 
-    backups_dir = cfg.output_dir / str(rt.get("backup_dir", "backups"))
+    scan_root = _sibling_scan_root(cfg)
+    backups_dir = scan_root / str(rt.get("backup_dir", "backups"))
     prefix = id_prefix_from_pattern(cfg.scene_id_pattern)
     current = cfg.scene_id
     archived: list[Path] = []
 
-    if not cfg.output_dir.is_dir():
+    if not scan_root.is_dir():
         return archived
 
-    for entry in sorted(cfg.output_dir.iterdir()):
+    for entry in sorted(scan_root.iterdir()):
         if not entry.is_dir() or entry.name == current:
             continue
         if entry.name == "backups":
@@ -84,9 +94,11 @@ def prepare_release_run(cfg: PipelineConfig, log: LogFn) -> list[Path]:
     """Backup siblings and optionally the target package before writing."""
     archived = backup_previous_packages(cfg, log)
     if bool(cfg.runtime.get("backup_self_if_exists", False)):
-        backups_dir = cfg.output_dir / str(cfg.runtime.get("backup_dir", "backups"))
+        scan_root = _sibling_scan_root(cfg)
+        backups_dir = scan_root / str(cfg.runtime.get("backup_dir", "backups"))
+        target = cfg.scene_root() if Path(cfg.output_dir).name == "output" else cfg.package_dir()
         hit = backup_package(
-            cfg.package_dir(),
+            target,
             backups_dir,
             log=log,
             suffix="_before_rerun",

@@ -50,7 +50,7 @@ def test_build_nav2_nature_from_dem_utm(tmp_path):
         origin=origin,
         name="testdem",
     )
-    assert (pkg / "nav2" / "nature" / "testdem.bmp").is_file()
-    assert (pkg / "nav2" / "nature" / "testdem.pgm").is_file()
-    assert (pkg / "nav2" / "nature" / "nature_bmp.yaml").is_file()
+    assert (pkg / "nature" / "testdem.bmp").is_file()
+    assert (pkg / "nature" / "testdem.pgm").is_file()
+    assert (pkg / "nature" / "nature_bmp.yaml").is_file()
     assert result["free_px"] >= 0

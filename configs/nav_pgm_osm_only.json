@@ -13,12 +13,12 @@
     "note": "DEBUG ONLY. Set enabled:false for production. Never composed into World."
   },
   "outputs": {
-    "out_dir": "nav2/connected",
-    "map_pgm": "nav2/connected/map.pgm",
-    "cost_pgm": "nav2/connected/cost.pgm",
-    "map_local_yaml": "nav2/connected/map_local.yaml",
-    "map_yaml_utm": "nav2/connected/map.yaml",
-    "valhalla_origin_yaml": "nav2/connected/valhalla_origin.yaml",
-    "meta_json": "nav2/connected/map_meta.json"
+    "out_dir": "connected",
+    "map_pgm": "connected/map.pgm",
+    "cost_pgm": "connected/cost.pgm",
+    "map_local_yaml": "connected/map_local.yaml",
+    "map_yaml_utm": "connected/map.yaml",
+    "valhalla_origin_yaml": "connected/valhalla_origin.yaml",
+    "meta_json": "connected/map_meta.json"
   }
 }

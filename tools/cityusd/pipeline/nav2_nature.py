@@ -42,15 +42,21 @@ def run_nav2_nature(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
         if src_dem is not None:
             name = src_dem.stem
 
-    nature_dir_rel = str(outputs.get("nature_dir", NAV2_NATURE))
-    dem_dir_rel = str(outputs.get("dem_dir", NAV2_DEM))
+    nature_dir_rel = str(outputs.get("nature_dir", NAV2_NATURE)).replace("\\", "/").lstrip("./")
+    dem_dir_rel = str(outputs.get("dem_dir", NAV2_DEM)).replace("\\", "/").lstrip("./")
+    if nature_dir_rel.startswith("nav2/"):
+        nature_dir_rel = nature_dir_rel[len("nav2/") :]
+    if dem_dir_rel.startswith("nav2/"):
+        dem_dir_rel = dem_dir_rel[len("nav2/") :]
     max_slope = float(step_cfg.get("max_slope", 0.35))
     cliff_slope = float(step_cfg.get("cliff_slope", 0.70))
 
-    log(f"[nav2_nature] BMP + slope PGM from {dem_utm.name} → {nature_dir_rel}/")
+    cost_root = cfg.costmap_2d_dir()
+    cost_root.mkdir(parents=True, exist_ok=True)
+    log(f"[nav2_nature] BMP + slope PGM from {dem_utm.name} → CostMap/2D/{nature_dir_rel}/")
     result = build_nav2_nature_from_dem_utm(
         dem_utm,
-        package_dir,
+        cost_root,
         extent=extent,
         origin=origin,
         name=name,
@@ -68,6 +74,6 @@ def run_nav2_nature(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
     snap.parent.mkdir(parents=True, exist_ok=True)
     snap.write_text(json.dumps(step_cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    written = list(result["outputs"])
+    written = [f"../CostMap/2D/{o}" for o in result["outputs"]]
     written.append("configs/nav2_nature.resolved.json")
     return written

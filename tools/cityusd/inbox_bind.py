@@ -6,8 +6,6 @@ from pathlib import Path
 
 from cityusd.inbox_assets import INBOX_REL
 
-from cityusd.inbox_assets import INBOX_REL
-
 BAND_FOLDERS: dict[str, list[str]] = {
     "low": [
         "facades/sheets/shopfront",
@@ -120,7 +118,7 @@ def inbox_roof_sources(library_dir: Path) -> list[Path]:
 
 
 def default_inbox_library() -> Path:
-    return Path(__file__).resolve().parents[2] / "data" / "assets" / "AssetLibrary"
+    return Path(__file__).resolve().parents[2] / "tools" / "assets" / "AssetLibrary"
 
 
 def resolve_asset_library_root(

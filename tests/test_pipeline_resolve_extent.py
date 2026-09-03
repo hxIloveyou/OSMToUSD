@@ -77,11 +77,14 @@ def test_load_pipeline_config_examples():
 
     root = Path(__file__).resolve().parents[1]
     cfg = load_pipeline_config(root / "examples" / "taibei_ue.pipeline.yaml")
-    assert cfg.schema_version == "0.2"
-    assert cfg.scene_id.startswith("taibei_ue_")
+    assert cfg.schema_version == "0.3"
+    assert cfg.scene_id == "taibei_ue"
     assert cfg.step("resolve_extent") is not None
     assert cfg.step("terrain") and cfg.step("terrain").enabled
     assert cfg.step("nav_pgm") and cfg.step("nav_pgm").enabled
+    assert cfg.package_dir() == cfg.usd_dir()
+    assert "SceneData" in str(cfg.scene_root())
+    assert cfg.costmap_2d_dir().name == "2D"
 
 
 def test_runner_resolve_extent_only(tmp_path: Path):

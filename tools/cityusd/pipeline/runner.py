@@ -49,7 +49,12 @@ def _input_hash(
 
 def run_resolve_extent(cfg: PipelineConfig, package_dir: Path, log: LogFn = _log_default) -> dict:
     log("[resolve_extent] computing spatial contract...")
-    payload = resolve_extent(frame=cfg.frame, inputs=cfg.inputs, project_root=cfg.project_root)
+    payload = resolve_extent(
+        frame=cfg.frame,
+        inputs=cfg.inputs,
+        project_root=cfg.project_root,
+        input_dirs=[cfg.input_dir()],
+    )
     out = package_dir / "extent.json"
     write_extent_json(out, payload)
     for w in payload.get("warnings") or []:
@@ -139,6 +144,7 @@ def run_pipeline(
 ) -> Path:
     prepare_release_run(cfg, log)
 
+    cfg.ensure_dirs()
     package_dir = cfg.package_dir()
     package_dir.mkdir(parents=True, exist_ok=True)
 
@@ -230,5 +236,48 @@ def run_pipeline(
         )
         meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    log(f"=== pipeline done → {package_dir}")
+    # Scene-level alignment JSON (USD + CostMap consumers).
+    try:
+        from cityusd.scene_layout import write_alignment_meta
+        from cityusd.pipeline.terrain import load_extent_context
+
+        extent_payload, origin, extent = load_extent_context(package_dir)
+        connected_meta = cfg.costmap_2d_dir() / "connected" / "map_meta.json"
+        resolution: dict = {"meters_per_unit_usd": 0.01}
+        if connected_meta.is_file():
+            try:
+                cm = json.loads(connected_meta.read_text(encoding="utf-8"))
+                if "resolution_m" in cm:
+                    resolution["nav_resolution_m"] = float(cm["resolution_m"])
+                elif "resolution" in cm:
+                    resolution["nav_resolution_m"] = float(cm["resolution"])
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
+        write_alignment_meta(
+            cfg.scene_root() / "scene_alignment.json",
+            scene_id=cfg.scene_id,
+            origin_wgs84={"lon": origin.lon, "lat": origin.lat, "height_m": origin.height_m},
+            extent_m=extent.to_json(),
+            crs_epsg=int(origin.epsg),
+            resolution=resolution,
+            usd_rel="./output/USD",
+            costmap_2d_rel="./output/CostMap/2D",
+            costmap_3d_rel="./output/CostMap/3D",
+        )
+        # Mirror next to CostMap for consumers that only mount CostMap.
+        write_alignment_meta(
+            cfg.costmap_2d_dir() / "scene_alignment.json",
+            scene_id=cfg.scene_id,
+            origin_wgs84={"lon": origin.lon, "lat": origin.lat, "height_m": origin.height_m},
+            extent_m=extent.to_json(),
+            crs_epsg=int(origin.epsg),
+            resolution=resolution,
+            usd_rel="../USD",
+            costmap_2d_rel="./",
+            costmap_3d_rel="../3D",
+        )
+    except Exception as exc:
+        log(f"[scene_alignment] skip: {exc}")
+
+    log(f"=== pipeline done → {cfg.scene_root()}")
     return package_dir

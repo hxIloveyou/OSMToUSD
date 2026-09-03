@@ -88,12 +88,17 @@ def test_terrain_nav_custom_data(tmp_path):
     assert UsdGeom.Imageable(plane).GetVisibilityAttr().Get() == UsdGeom.Tokens.invisible
 
     nav = tmp_path / "nav.usda"
-    write_nav_layer(nav, "./nav2/connected/map.pgm", "./nav2/connected/map_local.yaml")
+    write_nav_layer(
+        nav,
+        "../CostMap/2D/connected/map.pgm",
+        "../CostMap/2D/connected/map_local.yaml",
+        "../CostMap/2D/connected/cost.pgm",
+    )
     nstage = Usd.Stage.Open(str(nav))
     ncd = nstage.GetPrimAtPath("/World/Nav").GetCustomData()
-    assert ncd["map_pgm"] == "./nav2/connected/map.pgm"
-    assert ncd["map_yaml"] == "./nav2/connected/map_local.yaml"
-    assert ncd["cost_pgm"] == "./nav2/connected/cost.pgm"
+    assert ncd["map_pgm"] == "../CostMap/2D/connected/map.pgm"
+    assert ncd["map_yaml"] == "../CostMap/2D/connected/map_local.yaml"
+    assert ncd["cost_pgm"] == "../CostMap/2D/connected/cost.pgm"
     assert ncd["alignment_json"] == "./terrain_src/alignment.json"
 
 

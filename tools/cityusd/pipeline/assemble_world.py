@@ -27,11 +27,17 @@ def _resolve_input(cfg: PipelineConfig, key: str) -> Path | None:
     if not raw:
         return None
     p = Path(str(raw)).expanduser()
-    if not p.is_absolute():
-        cand = (cfg.project_root / p).resolve()
+    if p.is_absolute():
+        return p if p.is_file() else None
+    candidates = [
+        (cfg.project_root / p).resolve(),
+        (cfg.input_dir() / p).resolve(),
+        (cfg.input_dir() / p.name).resolve(),
+    ]
+    for cand in candidates:
         if cand.is_file():
             return cand
-    return p if p.is_file() else None
+    return None
 
 
 def _load_city_layers(package_dir: Path) -> dict[str, str]:
@@ -220,16 +226,22 @@ def run_assemble_world(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> li
     meta["layout"] = cfg.output_layout
     meta["pipeline_schema"] = cfg.schema_version
 
-    if (package_dir / "nav2" / "connected" / "map.pgm").is_file():
+    if (cfg.costmap_2d_dir() / "connected" / "map.pgm").is_file():
         meta["nav"] = {
-            "map_pgm": "./nav2/connected/map.pgm",
-            "map_yaml": "./nav2/connected/map_local.yaml",
-            "map_yaml_utm": "./nav2/connected/map.yaml",
-            "valhalla_origin": "./nav2/connected/valhalla_origin.yaml",
-            "cost_pgm": "./nav2/connected/cost.pgm",
+            "map_pgm": "../CostMap/2D/connected/map.pgm",
+            "map_yaml": "../CostMap/2D/connected/map_local.yaml",
+            "map_yaml_utm": "../CostMap/2D/connected/map.yaml",
+            "valhalla_origin": "../CostMap/2D/connected/valhalla_origin.yaml",
+            "cost_pgm": "../CostMap/2D/connected/cost.pgm",
         }
-    if (package_dir / "nav2" / "nature" / "nature_bmp.yaml").is_file():
-        meta.setdefault("nav2", {})["nature"] = "./nav2/nature/nature_bmp.yaml"
+    if (cfg.costmap_2d_dir() / "nature" / "nature_bmp.yaml").is_file():
+        meta.setdefault("nav2", {})["nature"] = "../CostMap/2D/nature/nature_bmp.yaml"
+    meta["paths"] = {
+        "usd": "./",
+        "costmap_2d": "../CostMap/2D",
+        "costmap_3d": "../CostMap/3D",
+        "scene_root": "../../",
+    }
 
     catalog_manifest = package_dir / "catalog" / "index" / "shard_manifest.json"
     if catalog_manifest.is_file():

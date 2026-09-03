@@ -24,11 +24,16 @@ def _resolve_input(cfg: PipelineConfig, key: str) -> Optional[Path]:
     if not raw:
         return None
     p = Path(str(raw)).expanduser()
-    if not p.is_absolute():
-        cand = (cfg.project_root / p).resolve()
+    if p.is_absolute():
+        return p if p.is_file() else p
+    for cand in (
+        (cfg.project_root / p).resolve(),
+        (cfg.input_dir() / p).resolve(),
+        (cfg.input_dir() / p.name).resolve(),
+    ):
         if cand.is_file():
             return cand
-    return p if p.is_file() else p
+    return (cfg.project_root / p).resolve()
 
 
 def load_extent_context(package_dir: Path) -> tuple[dict, Origin, ExtentM]:

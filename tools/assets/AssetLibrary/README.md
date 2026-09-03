@@ -3,7 +3,7 @@
 Unified asset library for OSM base materials and overlay meshes.
 
 Built by `Tools/scripts/rebuild_asset_library_from_web.py` into this folder
-(`data/AssetLibrary` under the USDManager project).
+(`tools/assets/AssetLibrary` in CityUsd; mirrored under USDManager as needed).
 
 ## Layout
 

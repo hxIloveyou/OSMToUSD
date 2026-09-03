@@ -7,6 +7,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from cityusd.scene_layout import (
+    SCENE_DATA_DIRNAME,
+    scene_input_dir,
+    tools_assets_dir,
+)
+
 try:
     import yaml
 except ImportError as exc:  # pragma: no cover
@@ -79,8 +85,50 @@ class PipelineConfig:
     source_path: Path
     project_root: Path
 
+    def scene_root(self) -> Path:
+        """Scene folder: SceneData/{id} when output_dir is …/output; else output_dir itself."""
+        od = Path(self.output_dir)
+        if od.name == "output":
+            return od.parent
+        return od
+
+    def input_dir(self) -> Path:
+        """Scene-private inputs under SceneData/{id}/input (or <output>/input in tests)."""
+        local = self.scene_root() / "input"
+        if Path(self.output_dir).name == "output" or local.is_dir():
+            return local
+        return scene_input_dir(self.project_root, self.scene_id)
+
+    def usd_dir(self) -> Path:
+        return Path(self.output_dir) / "USD"
+
+    def costmap_2d_dir(self) -> Path:
+        return Path(self.output_dir) / "CostMap" / "2D"
+
+    def costmap_3d_dir(self) -> Path:
+        return Path(self.output_dir) / "CostMap" / "3D"
+
+    def assets_dir(self) -> Path:
+        return tools_assets_dir(self.project_root)
+
     def package_dir(self) -> Path:
-        return self.output_dir / self.scene_id
+        """USD output root (legacy name kept for step callers)."""
+        return self.usd_dir()
+
+    def ensure_dirs(self) -> dict[str, Path]:
+        paths = {
+            "scene_root": self.scene_root(),
+            "input": self.input_dir(),
+            "usd": self.usd_dir(),
+            "costmap_2d": self.costmap_2d_dir(),
+            "costmap_3d": self.costmap_3d_dir(),
+        }
+        for path in paths.values():
+            path.mkdir(parents=True, exist_ok=True)
+        keep = paths["costmap_3d"] / ".gitkeep"
+        if not keep.exists():
+            keep.write_text("", encoding="utf-8")
+        return paths
 
     def step(self, name: str) -> Optional[StepConfig]:
         for s in self.steps:
@@ -93,7 +141,7 @@ class PipelineConfig:
 
 
 def _ensure_scene_id(scene: dict, runtime: Optional[dict] = None) -> str:
-    sid = str(scene.get("id") or "").strip()
+    sid = str(scene.get("id") or scene.get("library_id") or "").strip()
     if sid:
         return sid
     pattern = str(scene.get("id_pattern") or "taibei_ue_{timestamp}")
@@ -129,13 +177,18 @@ def load_pipeline_config(path: Path, *, overrides: Optional[dict] = None) -> Pip
             )
         )
 
-    out_dir = Path(str(output.get("dir") or "output")).expanduser()
     project_root = _find_project_root(path.parent)
-    if not out_dir.is_absolute():
-        out_dir = (project_root / out_dir).resolve()
-
     rt = dict(data.get("runtime") or {})
     sid = _ensure_scene_id(scene, rt)
+
+    out_dir_raw = output.get("dir")
+    if out_dir_raw:
+        out_dir = Path(str(out_dir_raw)).expanduser()
+        if not out_dir.is_absolute():
+            out_dir = (project_root / out_dir).resolve()
+    else:
+        out_dir = (project_root / SCENE_DATA_DIRNAME / sid / "output").resolve()
+
     return PipelineConfig(
         schema_version=str(data.get("schema_version") or SCHEMA_VERSION),
         scene_id=sid,

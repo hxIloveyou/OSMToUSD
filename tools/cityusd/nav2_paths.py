@@ -1,12 +1,19 @@
-"""Nav2 output layout constants (pipeline schema v0.3)."""
+"""Nav / CostMap 2D output layout (relative to SceneData/{id}/output/CostMap/2D)."""
 
 from __future__ import annotations
 
-NAV2_ROOT = "nav2"
-NAV2_CONNECTED = "nav2/connected"
-NAV2_VARIANTS = "nav2/variants"
-NAV2_NATURE = "nav2/nature"
-NAV2_DEM = "nav2/dem"
+# All paths are relative to CostMap/2D/
+COSTMAP_2D_CONNECTED = "connected"
+COSTMAP_2D_VARIANTS = "variants"
+COSTMAP_2D_NATURE = "nature"
+COSTMAP_2D_DEM = "dem"
+
+# Backward-compatible aliases (old nav2/* names → CostMap/2D/*)
+NAV2_ROOT = ""  # CostMap/2D is the root
+NAV2_CONNECTED = COSTMAP_2D_CONNECTED
+NAV2_VARIANTS = COSTMAP_2D_VARIANTS
+NAV2_NATURE = COSTMAP_2D_NATURE
+NAV2_DEM = COSTMAP_2D_DEM
 
 NAV2_CONNECTED_PGM = f"{NAV2_CONNECTED}/map.pgm"
 NAV2_CONNECTED_COST = f"{NAV2_CONNECTED}/cost.pgm"

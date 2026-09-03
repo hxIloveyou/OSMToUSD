@@ -289,8 +289,9 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
             print("warning: no imagery; skipping ortho", file=sys.stderr)
 
     def _refresh_alignment() -> None:
-        pgm_path = out_dir / NAV2_CONNECTED / "map.pgm"
-        cost_path = out_dir / NAV2_CONNECTED / "cost.pgm"
+        nav_root = out_dir / "CostMap" / "2D" / NAV2_CONNECTED
+        pgm_path = nav_root / "map.pgm"
+        cost_path = nav_root / "cost.pgm"
         if not (heightmap_rel or ortho_rel or pgm_path.exists()):
             return
         align_path = write_terrain_alignment(
@@ -300,11 +301,11 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
             extent=extent,
             heightmap_rel=heightmap_rel,
             ortho_rel=ortho_rel,
-            pgm_rel=f"./{NAV2_CONNECTED}/map.pgm" if pgm_path.exists() else None,
-            cost_rel=f"./{NAV2_CONNECTED}/cost.pgm" if cost_path.exists() else None,
+            pgm_rel=f"./CostMap/2D/{NAV2_CONNECTED}/map.pgm" if pgm_path.exists() else None,
+            cost_rel=f"./CostMap/2D/{NAV2_CONNECTED}/cost.pgm" if cost_path.exists() else None,
             heightmap_meta_path=out_dir / "terrain_src" / "heightmap_meta.json",
             ortho_meta_path=out_dir / "terrain_src" / "ortho_meta.json",
-            pgm_meta_path=out_dir / NAV2_CONNECTED / "map_meta.json",
+            pgm_meta_path=nav_root / "map_meta.json",
         )
         print(f"terrain alignment: {align_path.relative_to(out_dir)}", flush=True)
 
@@ -422,7 +423,7 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
     if "nav" in layers:
         print("nav PGM / costmap (connected) ...", flush=True)
         occupied, free = collect_nav_polygons_connected(osm)
-        nav_dir = out_dir / NAV2_CONNECTED
+        nav_dir = out_dir / "CostMap" / "2D" / NAV2_CONNECTED
         nav_dir.mkdir(parents=True, exist_ok=True)
         rasterize_pgm(
             extent,
@@ -565,8 +566,8 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
     if "nav" in layers:
         write_nav_layer(
             layers_dir / "nav.usda",
-            f"./{NAV2_CONNECTED}/map.pgm",
-            f"./{NAV2_CONNECTED}/map_local.yaml",
+            f"../CostMap/2D/{NAV2_CONNECTED}/map.pgm",
+            f"../CostMap/2D/{NAV2_CONNECTED}/map_local.yaml",
         )
     if "world" in layers:
         write_all_overlays(out_dir / "overlay")
@@ -592,11 +593,11 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
         meta = build_package_meta(scene_id, crs=crs)
         meta["layers"].update(city_rels)
         meta["nav"] = {
-            "map_pgm": f"./{NAV2_CONNECTED}/map.pgm",
-            "map_yaml": f"./{NAV2_CONNECTED}/map_local.yaml",
-            "map_yaml_utm": f"./{NAV2_CONNECTED}/map.yaml",
-            "valhalla_origin": f"./{NAV2_CONNECTED}/valhalla_origin.yaml",
-            "cost_pgm": f"./{NAV2_CONNECTED}/cost.pgm",
+            "map_pgm": f"./CostMap/2D/{NAV2_CONNECTED}/map.pgm",
+            "map_yaml": f"./CostMap/2D/{NAV2_CONNECTED}/map_local.yaml",
+            "map_yaml_utm": f"./CostMap/2D/{NAV2_CONNECTED}/map.yaml",
+            "valhalla_origin": f"./CostMap/2D/{NAV2_CONNECTED}/valhalla_origin.yaml",
+            "cost_pgm": f"./CostMap/2D/{NAV2_CONNECTED}/cost.pgm",
         }
         write_meta(out_dir / "meta.json", meta)
 

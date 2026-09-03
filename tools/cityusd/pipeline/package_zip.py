@@ -27,6 +27,11 @@ def run_package_zip(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
     output_pattern = str(step_cfg.get("output", "{scene_id}.zip"))
     zip_name = output_pattern.replace("{scene_id}", cfg.scene_id)
 
+    # Zip USD + CostMap together from the scene output/ folder.
+    archive_root = Path(cfg.output_dir)
+    if not archive_root.is_dir():
+        archive_root = package_dir.parent if package_dir.parent.is_dir() else package_dir
+
     out_spec = step_cfg.get("output_dir")
     if out_spec:
         zip_path = Path(str(out_spec)).expanduser()
@@ -35,7 +40,7 @@ def run_package_zip(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
         if zip_path.suffix.lower() != ".zip":
             zip_path = zip_path / zip_name
     else:
-        zip_path = package_dir.parent / zip_name
+        zip_path = cfg.scene_root() / zip_name
 
     exclude = list(step_cfg.get("exclude") or ["backups/**", "**/*.pending.json"])
     compression_name = str(step_cfg.get("compression", "deflated")).lower()
@@ -47,10 +52,10 @@ def run_package_zip(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
     count = 0
     total_bytes = 0
     with zipfile.ZipFile(zip_path, "w", compression=compression) as zf:
-        for path in sorted(package_dir.rglob("*")):
+        for path in sorted(archive_root.rglob("*")):
             if not path.is_file():
                 continue
-            rel = path.relative_to(package_dir).as_posix()
+            rel = path.relative_to(archive_root).as_posix()
             if _should_exclude(rel, exclude):
                 continue
             zf.write(path, rel)
@@ -61,6 +66,7 @@ def run_package_zip(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
         "path": str(zip_path),
         "files": count,
         "uncompressed_bytes": total_bytes,
+        "archive_root": str(archive_root),
     }
     sidecar = package_dir / "package.zip.json"
     sidecar.write_text(json.dumps(manifest_entry, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -69,6 +75,5 @@ def run_package_zip(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
     snap.parent.mkdir(parents=True, exist_ok=True)
     snap.write_text(json.dumps(step_cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    rel_zip = zip_path.relative_to(package_dir.parent) if zip_path.is_relative_to(package_dir.parent) else zip_path
-    log(f"[package_zip] ok → {rel_zip} ({count} files)")
-    return [str(rel_zip), "package.zip.json", "configs/package_zip.resolved.json"]
+    log(f"[package_zip] ok → {zip_path.name} ({count} files from {archive_root.name}/)")
+    return [str(zip_path), "package.zip.json", "configs/package_zip.resolved.json"]

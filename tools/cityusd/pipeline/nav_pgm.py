@@ -19,6 +19,7 @@ from cityusd.pipeline.osm_city_usd import _resolve_input, _stage_build_data
 from cityusd.pipeline.schema import PipelineConfig, load_step_config_ref
 from cityusd.pipeline.terrain import load_extent_context
 from cityusd.rasters import write_terrain_alignment
+from cityusd.scene_layout import costmap_rel_from_usd
 from cityusd.usd_write import write_nav_layer
 
 LogFn = Callable[[str], None]
@@ -60,11 +61,23 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
         simple_buildings=bool(step_cfg.get("simple_buildings", False)),
     )
 
-    out_rel = str(outputs.get("out_dir", NAV2_CONNECTED))
-    out_dir = package_dir / out_rel
-    map_pgm = package_dir / str(outputs.get("map_pgm", NAV2_CONNECTED_PGM))
-    map_local_yaml = package_dir / str(outputs.get("map_local_yaml", NAV2_CONNECTED_MAP_LOCAL))
-    map_meta = package_dir / str(outputs.get("meta_json", NAV2_CONNECTED_META))
+    cost_root = cfg.costmap_2d_dir()
+    cost_root.mkdir(parents=True, exist_ok=True)
+    out_rel = str(outputs.get("out_dir", NAV2_CONNECTED)).replace("\\", "/").lstrip("./")
+    if out_rel.startswith("nav2/"):
+        out_rel = out_rel[len("nav2/") :]
+    out_dir = cost_root / out_rel
+
+    def _cost_path(key: str, default: str) -> Path:
+        rel = str(outputs.get(key, default)).replace("\\", "/").lstrip("./")
+        if rel.startswith("nav2/"):
+            rel = rel[len("nav2/") :]
+        return cost_root / rel
+
+    map_pgm = _cost_path("map_pgm", NAV2_CONNECTED_PGM)
+    map_local_yaml = _cost_path("map_local_yaml", NAV2_CONNECTED_MAP_LOCAL)
+    map_meta = _cost_path("meta_json", NAV2_CONNECTED_META)
+    cost_pgm = _cost_path("cost_pgm", NAV2_CONNECTED_COST)
 
     rasterize_pgm(
         extent,
@@ -99,20 +112,25 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
         "road_source": "motor_carriageway_polygons (flat cap, round join, no hierarchy cut)",
         "occupied_polys": len(occupied),
         "free_polys": len(free),
+        "costmap_root": "CostMap/2D",
     }
     (out_dir / "nav_connected_meta.json").write_text(
         json.dumps(connected_note, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
     (out_dir / "README.txt").write_text(
-        "Default nav2 connected occupancy (pipeline nav_pgm, schema v0.3).\n"
-        "Binary map; no unknown(205). Use map_local.yaml for Nav2/USD alignment.\n",
+        "Connected occupancy under SceneData/{id}/output/CostMap/2D/connected/.\n"
+        "Binary map; use map_local.yaml for Nav2/USD alignment.\n",
         encoding="utf-8",
     )
 
+    pgm_from_usd = costmap_rel_from_usd(map_pgm.relative_to(cost_root).as_posix())
+    yaml_from_usd = costmap_rel_from_usd(map_local_yaml.relative_to(cost_root).as_posix())
+    cost_from_usd = costmap_rel_from_usd(cost_pgm.relative_to(cost_root).as_posix())
+
     nav_usda = package_dir / "layers" / "nav.usda"
     nav_usda.parent.mkdir(parents=True, exist_ok=True)
-    write_nav_layer(nav_usda, f"./{NAV2_CONNECTED}/map.pgm", f"./{NAV2_CONNECTED}/map_local.yaml")
+    write_nav_layer(nav_usda, pgm_from_usd, yaml_from_usd, cost_from_usd)
 
     align_path = package_dir / "terrain" / "alignment.json"
     if align_path.is_file():
@@ -129,21 +147,21 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
             ortho_rel="./terrain/ortho_ue.png"
             if (package_dir / "terrain" / "ortho_ue.png").is_file()
             else None,
-            pgm_rel=f"./{NAV2_CONNECTED_PGM}",
-            cost_rel=f"./{NAV2_CONNECTED_COST}",
+            pgm_rel=pgm_from_usd,
+            cost_rel=cost_from_usd,
             heightmap_meta_path=hm_meta if hm_meta.is_file() else None,
             ortho_meta_path=ortho_meta if ortho_meta.is_file() else None,
             pgm_meta_path=map_meta,
         )
 
     written = [
-        str(map_pgm.relative_to(package_dir).as_posix()),
-        str(map_local_yaml.relative_to(package_dir).as_posix()),
-        f"{NAV2_CONNECTED}/map.yaml",
-        f"{NAV2_CONNECTED}/valhalla_origin.yaml",
-        str(map_meta.relative_to(package_dir).as_posix()),
-        NAV2_CONNECTED_COST,
-        f"{NAV2_CONNECTED}/nav_connected_meta.json",
+        f"../CostMap/2D/{map_pgm.relative_to(cost_root).as_posix()}",
+        f"../CostMap/2D/{map_local_yaml.relative_to(cost_root).as_posix()}",
+        f"../CostMap/2D/{out_rel}/map.yaml",
+        f"../CostMap/2D/{out_rel}/valhalla_origin.yaml",
+        f"../CostMap/2D/{map_meta.relative_to(cost_root).as_posix()}",
+        f"../CostMap/2D/{cost_pgm.relative_to(cost_root).as_posix()}",
+        f"../CostMap/2D/{out_rel}/nav_connected_meta.json",
         "layers/nav.usda",
     ]
 
@@ -160,7 +178,7 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
         )
         written.extend(overlay_outs)
         log(
-            "[nav_pgm] debug align overlay → debug/nav_align/ "
+            "[nav_pgm] debug align overlay → USD/debug/nav_align/ "
             "(NOT in World; disable align_overlay.enabled for production)"
         )
     else:
@@ -171,5 +189,5 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
     snap.write_text(json.dumps(step_cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     written.append("configs/nav_pgm.resolved.json")
 
-    log(f"[nav_pgm] ok occ={len(occupied)} free={len(free)} → {out_rel}/")
+    log(f"[nav_pgm] ok occ={len(occupied)} free={len(free)} → CostMap/2D/{out_rel}/")
     return written
