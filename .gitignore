@@ -22,7 +22,7 @@ data/dem/
 *.tiff
 *.osm.pbf
 
-# Large asset binaries
+# Large asset binaries (Scene Package / scratch rasters)
 *.jpg
 *.jpeg
 *.png
@@ -30,6 +30,11 @@ data/dem/
 *.hdr
 *.bmp
 data/assets/**/inbox/
+
+# Keep the versioned AssetLibrary (facade inbox + materials) in git
+!data/assets/AssetLibrary/
+!data/assets/AssetLibrary/**
+data/assets/AssetLibrary/_downloads/
 
 # Compiled USD layers
 *.usdc
