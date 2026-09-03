@@ -8,33 +8,23 @@ __pycache__/
 .venv/
 venv/
 
-# Generated Scene Packages and archives (back up outside git)
+# Generated Scene Packages (back up outside git)
 output/
-*.zip
 tools.zip
 
-# Heavy geospatial inputs
-data/osm/
-data/imagery/
-data/rasters/
-data/dem/
-*.tif
-*.tiff
-*.osm.pbf
+# Scratch archives outside data/
+*.zip
+!data/**/*.zip
 
-# Large asset binaries (Scene Package / scratch rasters)
+# Image dumps outside the versioned AssetLibrary
 *.jpg
 *.jpeg
 *.png
 *.exr
 *.hdr
 *.bmp
-data/assets/**/inbox/
-
-# Keep the versioned AssetLibrary (facade inbox + materials) in git
 !data/assets/AssetLibrary/
 !data/assets/AssetLibrary/**
-data/assets/AssetLibrary/_downloads/
 
 # Compiled USD layers
 *.usdc
