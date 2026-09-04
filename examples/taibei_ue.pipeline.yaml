@@ -7,9 +7,13 @@ scene:
   title: "Taipei UE release"
 
 runtime:
+  backup_output_before_run: true
   backup_previous_packages: false
   backup_self_if_exists: false
   backup_dir: backups
+  backup_exclude:
+    - "**/*.zip"
+    - "*.zip"
 
 pipeline:
   - step: resolve_extent

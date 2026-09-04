@@ -38,6 +38,58 @@ def _write_pgm(path: Path, grid: np.ndarray) -> None:
     path.write_bytes(header + np.ascontiguousarray(grid, dtype=np.uint8).tobytes())
 
 
+def soft_edge_occupancy(
+    grid: np.ndarray,
+    *,
+    resolution_m: float,
+    radius_m: float = 2.0,
+) -> np.ndarray:
+    """Anti-aliased occupancy: gray ramp within ±radius_m of free/occupied boundary.
+
+    Far free stays FREE (254), far occupied stays OCCUPIED (0). Intended for
+    visualization; keep binary map.pgm for Nav2 planning.
+    """
+    try:
+        from scipy.ndimage import distance_transform_edt
+    except ImportError as exc:  # pragma: no cover
+        raise ImportError("scipy required for soft-edge PGM: pip install scipy") from exc
+
+    if resolution_m <= 0:
+        raise ValueError("resolution_m must be positive")
+    radius_m = max(0.0, float(radius_m))
+    if radius_m <= 1e-9:
+        return np.ascontiguousarray(grid, dtype=np.uint8)
+
+    free = grid >= ((FREE + OCCUPIED) // 2)
+    dist_in = distance_transform_edt(free)
+    dist_out = distance_transform_edt(~free)
+    r_px = max(radius_m / float(resolution_m), 1e-6)
+
+    soft = grid.astype(np.float32, copy=True)
+    near = (free & (dist_in <= r_px)) | ((~free) & (dist_out <= r_px))
+    if np.any(near):
+        sd = np.where(free, dist_in, -dist_out)
+        t = np.clip((sd[near] + r_px) / (2.0 * r_px), 0.0, 1.0)
+        soft[near] = float(FREE) * t
+    return np.clip(np.rint(soft), 0, 255).astype(np.uint8)
+
+
+def write_soft_edge_pgm(
+    binary_pgm: Path,
+    out_pgm: Path,
+    *,
+    resolution_m: float,
+    radius_m: float = 2.0,
+) -> Path:
+    """Read binary occupancy PGM and write soft-edge sibling."""
+    from cityusd.nav_align_overlay import read_pgm_u8
+
+    grid = read_pgm_u8(binary_pgm)
+    soft = soft_edge_occupancy(grid, resolution_m=resolution_m, radius_m=radius_m)
+    _write_pgm(out_pgm, soft)
+    return Path(out_pgm)
+
+
 def _write_yaml(
     path: Path,
     image_name: str,

@@ -11,50 +11,38 @@ with city USD layers and Nav2 cost maps. Intended for later integration into **U
 ```text
 CityUsd/
   SceneData/
-    {scene_id}/                 # scene library id (e.g. taibei_ue)
-      input/                    # scene-private inputs
-        osm/
-        dem/
-        imagery/
+    {scene_id}/
+      input/{osm,dem,imagery}/
       output/
-        USD/                    # World, layers, textures, models, catalog, …
-        CostMap/
-          2D/                   # nav connected / variants / nature (PGM+yaml)
-          3D/                   # reserved empty (external 3D cost tools)
-      scene_alignment.json      # shared meta: resolution, center, extent, paths
+        {scene_id}-USD/              # World, layers, textures, …
+        {scene_id}-CostMap/
+          2D/connected/              # map.pgm, cost.pgm, map_soft.pgm, yaml
+          3D/                        # placeholder
+      backups/                       # dated zips of previous output/
+      scene_alignment.json
   tools/
-    assets/                     # shared AssetLibrary (facades, meshes, …)
-    cityusd/                    # library code
-    build_scene_pipeline.py     # CLI entry
-    …
-  configs/ presets/ examples/ tests/ docs/
+    assets/                          # shared AssetLibrary
+    cityusd/
+    build_scene_pipeline.py
 ```
 
 | Path | Role |
 |------|------|
-| `SceneData/{id}/input` | Per-scene OSM / DEM / ortho |
-| `SceneData/{id}/output/USD` | Geometry USD package (no nav2 tree) |
-| `SceneData/{id}/output/CostMap/2D` | All 2D nav / cost rasters |
-| `SceneData/{id}/output/CostMap/3D` | Placeholder for others' 3D cost output |
-| `tools/assets` | Shared assets across scenes |
-| `tools/` | Pipeline scripts & `cityusd` package |
-| `output/ScenePackages/` | **Legacy** packages (kept for rollback; prefer SceneData) |
-| `data/` | **Legacy** inputs (kept for rollback; prefer SceneData/input) |
+| `…/output/{id}-USD` | Geometry USD package |
+| `…/output/{id}-CostMap/2D` | Nav / cost rasters (`map_soft.pgm` = 2 m soft edge, viz only) |
+| `…/output/{id}-CostMap/3D` | Placeholder for external 3D cost |
+| `…/backups/` | Auto zip of previous `output/` before regenerate (`*.zip` excluded) |
+| `tools/assets` | Shared assets |
 
 ## Quick start
 
 ```powershell
-cd E:\UEWork\ROS2Test\CityUsd
+cd E:\UEWork\ROS2Test\CityUsd_v2
 $env:PYTHONPATH="tools"
 python tools/build_scene_pipeline.py --config examples/taibei_ue.pipeline.yaml
 ```
 
-Results land under `SceneData/taibei_ue/output/…`. Alignment metadata:
-
-- `SceneData/{id}/scene_alignment.json`
-- `SceneData/{id}/output/CostMap/2D/scene_alignment.json`
-
 ## Recovery
 
 - Git remote: `origin` → GitHub `hxIloveyou/OSMToUSD`
-- Do not delete legacy `data/` / `output/ScenePackages/` until the new layout is validated
+- Do not delete legacy `CityUsd/` until the new layout is validated

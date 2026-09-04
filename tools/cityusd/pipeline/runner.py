@@ -260,9 +260,9 @@ def run_pipeline(
             extent_m=extent.to_json(),
             crs_epsg=int(origin.epsg),
             resolution=resolution,
-            usd_rel="./output/USD",
-            costmap_2d_rel="./output/CostMap/2D",
-            costmap_3d_rel="./output/CostMap/3D",
+            usd_rel=f"./output/{cfg.scene_id}-USD",
+            costmap_2d_rel=f"./output/{cfg.scene_id}-CostMap/2D",
+            costmap_3d_rel=f"./output/{cfg.scene_id}-CostMap/3D",
         )
         # Mirror next to CostMap for consumers that only mount CostMap.
         write_alignment_meta(
@@ -272,7 +272,7 @@ def run_pipeline(
             extent_m=extent.to_json(),
             crs_epsg=int(origin.epsg),
             resolution=resolution,
-            usd_rel="../USD",
+            usd_rel=f"../{cfg.scene_id}-USD",
             costmap_2d_rel="./",
             costmap_3d_rel="../3D",
         )

@@ -1,8 +1,8 @@
-"""Nav / CostMap 2D output layout (relative to SceneData/{id}/output/CostMap/2D)."""
+"""Nav / CostMap 2D output layout (relative to SceneData/{id}/output/{id}-CostMap/2D)."""
 
 from __future__ import annotations
 
-# All paths are relative to CostMap/2D/
+# All paths are relative to {scene_id}-CostMap/2D/
 COSTMAP_2D_CONNECTED = "connected"
 COSTMAP_2D_VARIANTS = "variants"
 COSTMAP_2D_NATURE = "nature"

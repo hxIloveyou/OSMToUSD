@@ -5,6 +5,12 @@
   "sources": {
     "occupancy": "osm_connected"
   },
+  "soft_edge": {
+    "enabled": true,
+    "radius_m": 2.0,
+    "output": "connected/map_soft.pgm",
+    "note": "Visualization anti-alias; keep map.pgm binary for Nav2."
+  },
   "align_overlay": {
     "enabled": true,
     "max_preview_side": 4096,
@@ -16,6 +22,7 @@
     "out_dir": "connected",
     "map_pgm": "connected/map.pgm",
     "cost_pgm": "connected/cost.pgm",
+    "map_soft_pgm": "connected/map_soft.pgm",
     "map_local_yaml": "connected/map_local.yaml",
     "map_yaml_utm": "connected/map.yaml",
     "valhalla_origin_yaml": "connected/valhalla_origin.yaml",

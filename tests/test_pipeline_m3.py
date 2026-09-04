@@ -63,9 +63,12 @@ def test_nav_pgm_and_osm_labels_tiny(tmp_path: Path) -> None:
     cost2d = cfg.costmap_2d_dir()
     assert (cost2d / "connected" / "map.pgm").is_file()
     assert (cost2d / "connected" / "cost.pgm").is_file()
+    assert (cost2d / "connected" / "map_soft.pgm").is_file()
     assert (cost2d / "connected" / "map_local.yaml").is_file()
     assert (cost2d / "connected" / "valhalla_origin.yaml").is_file()
     assert (pkg / "layers" / "nav.usda").is_file()
+    assert cost2d.parent.name == "test_m3-CostMap"
+    assert pkg.name == "test_m3-USD"
 
     manifest = json.loads((pkg / "catalog" / "index" / "shard_manifest.json").read_text(encoding="utf-8"))
     assert manifest["feature_count"] >= 3

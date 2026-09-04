@@ -84,7 +84,9 @@ def test_load_pipeline_config_examples():
     assert cfg.step("nav_pgm") and cfg.step("nav_pgm").enabled
     assert cfg.package_dir() == cfg.usd_dir()
     assert "SceneData" in str(cfg.scene_root())
+    assert cfg.usd_dir().name == "taibei_ue-USD"
     assert cfg.costmap_2d_dir().name == "2D"
+    assert cfg.costmap_dir().name == "taibei_ue-CostMap"
 
 
 def test_runner_resolve_extent_only(tmp_path: Path):
@@ -95,6 +97,8 @@ def test_runner_resolve_extent_only(tmp_path: Path):
     cfg = load_pipeline_config(root / "examples" / "taibei_ue.pipeline.yaml")
     cfg.output_dir = tmp_path
     cfg.scene_id = "test_extent_only"
+    cfg.runtime["backup_output_before_run"] = False
+    cfg.runtime["backup_previous_packages"] = False
 
     # Override to explicit extent so no input files required
     cfg.frame["extent"] = {

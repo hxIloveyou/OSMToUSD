@@ -171,3 +171,15 @@ def test_connected_binary_no_unknown(tmp_path):
     grid = _load_pgm(tmp_path / "map2.pgm")
     assert int((grid == UNKNOWN).sum()) == 0
     assert grid[50, 50] == FREE
+
+
+def test_soft_edge_occupancy_ramps_at_boundary():
+    from cityusd.pgm import soft_edge_occupancy
+
+    grid = np.full((21, 21), OCCUPIED, dtype=np.uint8)
+    grid[5:16, 5:16] = FREE
+    soft = soft_edge_occupancy(grid, resolution_m=1.0, radius_m=2.0)
+    assert soft[10, 10] == FREE
+    assert soft[0, 0] == OCCUPIED
+    # Just outside the free square (row 4) should be intermediate gray
+    assert 0 < int(soft[4, 10]) < FREE

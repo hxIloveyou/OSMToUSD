@@ -14,7 +14,7 @@ from cityusd.nav2_paths import (
 from cityusd.nav_align_overlay import write_nav_align_overlay
 from cityusd.nav_polys import collect_nav_polygons_connected
 from cityusd.osm_parse import parse_osm
-from cityusd.pgm import rasterize_pgm, write_nav2_yaml_bundle
+from cityusd.pgm import rasterize_pgm, write_nav2_yaml_bundle, write_soft_edge_pgm
 from cityusd.pipeline.osm_city_usd import _resolve_input, _stage_build_data
 from cityusd.pipeline.schema import PipelineConfig, load_step_config_ref
 from cityusd.pipeline.terrain import load_extent_context
@@ -63,6 +63,7 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
 
     cost_root = cfg.costmap_2d_dir()
     cost_root.mkdir(parents=True, exist_ok=True)
+    cm_prefix = cfg.costmap_rel_prefix()
     out_rel = str(outputs.get("out_dir", NAV2_CONNECTED)).replace("\\", "/").lstrip("./")
     if out_rel.startswith("nav2/"):
         out_rel = out_rel[len("nav2/") :]
@@ -103,6 +104,23 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
         scene_id=cfg.scene_id,
     )
 
+    soft_cfg = step_cfg.get("soft_edge") or {}
+    soft_enabled = bool(soft_cfg.get("enabled", True))
+    soft_radius_m = float(soft_cfg.get("radius_m", 2.0))
+    soft_rel = str(soft_cfg.get("output") or outputs.get("map_soft_pgm") or f"{out_rel}/map_soft.pgm")
+    soft_rel = soft_rel.replace("\\", "/").lstrip("./")
+    if soft_rel.startswith("nav2/"):
+        soft_rel = soft_rel[len("nav2/") :]
+    soft_pgm = cost_root / soft_rel
+    if soft_enabled:
+        write_soft_edge_pgm(
+            map_pgm,
+            soft_pgm,
+            resolution_m=resolution_m,
+            radius_m=soft_radius_m,
+        )
+        log(f"[nav_pgm] soft-edge map → {soft_rel} (radius={soft_radius_m:g} m)")
+
     connected_note = {
         "mode": "connected",
         "resolution_m": resolution_m,
@@ -112,21 +130,36 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
         "road_source": "motor_carriageway_polygons (flat cap, round join, no hierarchy cut)",
         "occupied_polys": len(occupied),
         "free_polys": len(free),
-        "costmap_root": "CostMap/2D",
+        "costmap_root": f"{cfg.scene_id}-CostMap/2D",
+        "soft_edge": {
+            "enabled": soft_enabled,
+            "radius_m": soft_radius_m,
+            "map_soft_pgm": soft_rel if soft_enabled else None,
+        },
     }
     (out_dir / "nav_connected_meta.json").write_text(
         json.dumps(connected_note, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
     (out_dir / "README.txt").write_text(
-        "Connected occupancy under SceneData/{id}/output/CostMap/2D/connected/.\n"
-        "Binary map; use map_local.yaml for Nav2/USD alignment.\n",
+        f"Connected occupancy under SceneData/{{id}}/output/{cfg.scene_id}-CostMap/2D/connected/.\n"
+        "Binary map.pgm for Nav2; map_soft.pgm is visualization anti-alias (not for planning).\n",
         encoding="utf-8",
     )
 
-    pgm_from_usd = costmap_rel_from_usd(map_pgm.relative_to(cost_root).as_posix())
-    yaml_from_usd = costmap_rel_from_usd(map_local_yaml.relative_to(cost_root).as_posix())
-    cost_from_usd = costmap_rel_from_usd(cost_pgm.relative_to(cost_root).as_posix())
+    if map_meta.is_file():
+        try:
+            meta_payload = json.loads(map_meta.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            meta_payload = {}
+        if soft_enabled:
+            meta_payload["map_soft_pgm"] = soft_pgm.name
+            meta_payload["soft_edge_radius_m"] = soft_radius_m
+        map_meta.write_text(json.dumps(meta_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    pgm_from_usd = costmap_rel_from_usd(map_pgm.relative_to(cost_root).as_posix(), cfg.scene_id)
+    yaml_from_usd = costmap_rel_from_usd(map_local_yaml.relative_to(cost_root).as_posix(), cfg.scene_id)
+    cost_from_usd = costmap_rel_from_usd(cost_pgm.relative_to(cost_root).as_posix(), cfg.scene_id)
 
     nav_usda = package_dir / "layers" / "nav.usda"
     nav_usda.parent.mkdir(parents=True, exist_ok=True)
@@ -155,15 +188,17 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
         )
 
     written = [
-        f"../CostMap/2D/{map_pgm.relative_to(cost_root).as_posix()}",
-        f"../CostMap/2D/{map_local_yaml.relative_to(cost_root).as_posix()}",
-        f"../CostMap/2D/{out_rel}/map.yaml",
-        f"../CostMap/2D/{out_rel}/valhalla_origin.yaml",
-        f"../CostMap/2D/{map_meta.relative_to(cost_root).as_posix()}",
-        f"../CostMap/2D/{cost_pgm.relative_to(cost_root).as_posix()}",
-        f"../CostMap/2D/{out_rel}/nav_connected_meta.json",
+        f"{cm_prefix}/{map_pgm.relative_to(cost_root).as_posix()}",
+        f"{cm_prefix}/{map_local_yaml.relative_to(cost_root).as_posix()}",
+        f"{cm_prefix}/{out_rel}/map.yaml",
+        f"{cm_prefix}/{out_rel}/valhalla_origin.yaml",
+        f"{cm_prefix}/{map_meta.relative_to(cost_root).as_posix()}",
+        f"{cm_prefix}/{cost_pgm.relative_to(cost_root).as_posix()}",
+        f"{cm_prefix}/{out_rel}/nav_connected_meta.json",
         "layers/nav.usda",
     ]
+    if soft_enabled and soft_pgm.is_file():
+        written.append(f"{cm_prefix}/{soft_pgm.relative_to(cost_root).as_posix()}")
 
     align_cfg = step_cfg.get("align_overlay") or {}
     if bool(align_cfg.get("enabled", True)):
@@ -178,7 +213,7 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
         )
         written.extend(overlay_outs)
         log(
-            "[nav_pgm] debug align overlay → USD/debug/nav_align/ "
+            f"[nav_pgm] debug align overlay → {cfg.scene_id}-USD/debug/nav_align/ "
             "(NOT in World; disable align_overlay.enabled for production)"
         )
     else:
@@ -189,5 +224,5 @@ def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]
     snap.write_text(json.dumps(step_cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     written.append("configs/nav_pgm.resolved.json")
 
-    log(f"[nav_pgm] ok occ={len(occupied)} free={len(free)} → CostMap/2D/{out_rel}/")
+    log(f"[nav_pgm] ok occ={len(occupied)} free={len(free)} → {cfg.scene_id}-CostMap/2D/{out_rel}/")
     return written

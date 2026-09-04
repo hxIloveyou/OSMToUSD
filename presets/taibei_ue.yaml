@@ -77,4 +77,9 @@ runtime:
   on_step_fail: stop
   resume: false
   write_intermediate_configs: true
+  backup_output_before_run: true
   backup_previous_packages: false
+  backup_dir: backups
+  backup_exclude:
+    - "**/*.zip"
+    - "*.zip"

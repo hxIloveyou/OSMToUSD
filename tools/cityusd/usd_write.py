@@ -385,7 +385,7 @@ def write_building_cell(
     iy: int,
     lod_meshes: dict,
     switch_distance_m=0.0,
-    cell_size_m: float = 400.0,
+    cell_size_m: float = 500.0,
     material_path: Optional[str] = BUILDING_MATERIAL_PATH,
     suffix: str = "",
 ) -> str:

@@ -53,7 +53,7 @@ def run_nav2_nature(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
 
     cost_root = cfg.costmap_2d_dir()
     cost_root.mkdir(parents=True, exist_ok=True)
-    log(f"[nav2_nature] BMP + slope PGM from {dem_utm.name} → CostMap/2D/{nature_dir_rel}/")
+    log(f"[nav2_nature] BMP + slope PGM from {dem_utm.name} → {cfg.scene_id}-CostMap/2D/{nature_dir_rel}/")
     result = build_nav2_nature_from_dem_utm(
         dem_utm,
         cost_root,
@@ -74,6 +74,7 @@ def run_nav2_nature(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
     snap.parent.mkdir(parents=True, exist_ok=True)
     snap.write_text(json.dumps(step_cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    written = [f"../CostMap/2D/{o}" for o in result["outputs"]]
+    prefix = cfg.costmap_rel_prefix()
+    written = [f"{prefix}/{o}" for o in result["outputs"]]
     written.append("configs/nav2_nature.resolved.json")
     return written

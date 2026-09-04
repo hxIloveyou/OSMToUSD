@@ -42,7 +42,7 @@ def run_package_zip(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[
     else:
         zip_path = cfg.scene_root() / zip_name
 
-    exclude = list(step_cfg.get("exclude") or ["backups/**", "**/*.pending.json"])
+    exclude = list(step_cfg.get("exclude") or ["backups/**", "**/*.pending.json", "**/*.zip"])
     compression_name = str(step_cfg.get("compression", "deflated")).lower()
     compression = zipfile.ZIP_DEFLATED if compression_name != "stored" else zipfile.ZIP_STORED
 

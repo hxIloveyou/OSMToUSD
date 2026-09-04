@@ -14,8 +14,8 @@ from cityusd.osm_parse import OsmWay
 _HEIGHT_RE = re.compile(r"^\s*([\d.]+)\s*(?:m|meters?)?\s*$", re.IGNORECASE)
 
 LOD_LEVELS = [
-    # Plan A: 400m cells keep (band, variant) merge but cut Mesh/BLAS ~4× vs 200m.
-    {"name": "LOD0", "cell_size_m": 400.0, "switch_distance_m": 0.0, "merge_materials": False},
+    # Plan A: 500m cells keep (band, variant) merge; fewer Mesh/BLAS vs 400m.
+    {"name": "LOD0", "cell_size_m": 500.0, "switch_distance_m": 0.0, "merge_materials": False},
     {"name": "LOD1", "cell_size_m": 800.0, "switch_distance_m": 1500.0, "merge_materials": False},
     {"name": "LOD2", "cell_size_m": 3200.0, "switch_distance_m": 6000.0, "merge_materials": True},
 ]

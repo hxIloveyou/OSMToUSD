@@ -227,19 +227,23 @@ def run_assemble_world(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> li
     meta["pipeline_schema"] = cfg.schema_version
 
     if (cfg.costmap_2d_dir() / "connected" / "map.pgm").is_file():
+        p = cfg.costmap_rel_prefix()
         meta["nav"] = {
-            "map_pgm": "../CostMap/2D/connected/map.pgm",
-            "map_yaml": "../CostMap/2D/connected/map_local.yaml",
-            "map_yaml_utm": "../CostMap/2D/connected/map.yaml",
-            "valhalla_origin": "../CostMap/2D/connected/valhalla_origin.yaml",
-            "cost_pgm": "../CostMap/2D/connected/cost.pgm",
+            "map_pgm": f"{p}/connected/map.pgm",
+            "map_yaml": f"{p}/connected/map_local.yaml",
+            "map_yaml_utm": f"{p}/connected/map.yaml",
+            "valhalla_origin": f"{p}/connected/valhalla_origin.yaml",
+            "cost_pgm": f"{p}/connected/cost.pgm",
         }
+        soft = cfg.costmap_2d_dir() / "connected" / "map_soft.pgm"
+        if soft.is_file():
+            meta["nav"]["map_soft_pgm"] = f"{p}/connected/map_soft.pgm"
     if (cfg.costmap_2d_dir() / "nature" / "nature_bmp.yaml").is_file():
-        meta.setdefault("nav2", {})["nature"] = "../CostMap/2D/nature/nature_bmp.yaml"
+        meta.setdefault("nav2", {})["nature"] = f"{cfg.costmap_rel_prefix()}/nature/nature_bmp.yaml"
     meta["paths"] = {
         "usd": "./",
-        "costmap_2d": "../CostMap/2D",
-        "costmap_3d": "../CostMap/3D",
+        "costmap_2d": cfg.costmap_rel_prefix(),
+        "costmap_3d": f"../{cfg.scene_id}-CostMap/3D",
         "scene_root": "../../",
     }
 

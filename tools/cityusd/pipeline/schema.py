@@ -100,13 +100,20 @@ class PipelineConfig:
         return scene_input_dir(self.project_root, self.scene_id)
 
     def usd_dir(self) -> Path:
-        return Path(self.output_dir) / "USD"
+        return Path(self.output_dir) / f"{self.scene_id}-USD"
+
+    def costmap_dir(self) -> Path:
+        return Path(self.output_dir) / f"{self.scene_id}-CostMap"
 
     def costmap_2d_dir(self) -> Path:
-        return Path(self.output_dir) / "CostMap" / "2D"
+        return self.costmap_dir() / "2D"
 
     def costmap_3d_dir(self) -> Path:
-        return Path(self.output_dir) / "CostMap" / "3D"
+        return self.costmap_dir() / "3D"
+
+    def costmap_rel_prefix(self) -> str:
+        """Path from USD package root to CostMap/2D."""
+        return f"../{self.scene_id}-CostMap/2D"
 
     def assets_dir(self) -> Path:
         return tools_assets_dir(self.project_root)

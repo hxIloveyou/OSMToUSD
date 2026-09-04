@@ -114,9 +114,10 @@ def test_m4_overlay_assemble_zip_tiny_osm(tmp_path: Path) -> None:
     assert zip_path.is_file()
     with zipfile.ZipFile(zip_path) as zf:
         names = set(zf.namelist())
-    assert any("USD/World_test_m4.usda" in n or n.endswith("World_test_m4.usda") for n in names)
-    assert any(n.endswith("USD/meta.json") or n == "USD/meta.json" or "/meta.json" in n for n in names)
-    assert "CostMap/2D/connected/map.pgm" in names
+    assert any("test_m4-USD/World_test_m4.usda" in n or n.endswith("World_test_m4.usda") for n in names)
+    assert any(n.endswith("meta.json") or "/meta.json" in n for n in names)
+    assert "test_m4-CostMap/2D/connected/map.pgm" in names
+    assert "test_m4-CostMap/2D/connected/map_soft.pgm" in names
 
     manifest = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))
     for step in ("overlay", "assemble_world", "package_zip"):

@@ -13,10 +13,11 @@ output/
 tools.zip
 
 # SceneData generated USD / 2D cost (keep 3D placeholder)
-SceneData/*/output/USD/
-SceneData/*/output/CostMap/2D/
-!SceneData/*/output/CostMap/3D/
-!SceneData/*/output/CostMap/3D/.gitkeep
+SceneData/*/output/*-USD/
+SceneData/*/output/*-CostMap/2D/
+!SceneData/*/output/*-CostMap/3D/
+!SceneData/*/output/*-CostMap/3D/.gitkeep
+SceneData/*/backups/
 
 # Scratch archives
 *.zip
