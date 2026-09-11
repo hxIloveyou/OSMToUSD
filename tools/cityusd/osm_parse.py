@@ -1,3 +1,4 @@
+# 中文说明：解析 OSM/PBF 为局部坐标几何与标签。
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
@@ -34,7 +35,10 @@ class OsmData:
 
 
 def parse_osm(path: Path, origin: Optional[Origin] = None) -> OsmData:
-    """If origin is None, use bbox center."""
+    """If origin is None, use bbox center.
+
+功能：解析 OSM 文件为局部坐标 OsmData。
+"""
     path = Path(path)
     suffix = path.suffix.lower()
     name = path.name.lower()

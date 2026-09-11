@@ -1,3 +1,4 @@
+# 中文说明：建筑 footprint、高度、LOD 网格合并与车行道压楼。
 from __future__ import annotations
 
 import math
@@ -46,7 +47,10 @@ def building_floors(tags: dict[str, str]) -> int:
 
 
 def building_height_m(tags: dict[str, str]) -> float:
-    """Height is always floors × 3.0 m so facade UV matches storeys."""
+    """Height is always floors × 3.0 m so facade UV matches storeys.
+
+功能：由 tags 推断建筑高度（米）。
+"""
     return float(building_floors(tags)) * FLOOR_HEIGHT_M
 
 
@@ -99,7 +103,10 @@ def _append_line_segments(line, half: float, lines: list, half_widths: list[floa
 
 
 def carriageway_index(ways: list) -> tuple[list, list[float], object | None]:
-    """Short motor-road segments + half-widths. No pavement polygons."""
+    """Short motor-road segments + half-widths. No pavement polygons.
+
+功能：建立车行道空间索引供压楼查询。
+"""
     from cityusd.roads import is_motor_highway, way_width_m
 
     lines: list = []
@@ -164,7 +171,10 @@ def footprint_after_roads(
     half_widths=None,
     max_half: float | None = None,
 ) -> object | None:
-    """Keep a closed footprint, or drop it if it intersects a carriageway. No clip."""
+    """Keep a closed footprint, or drop it if it intersects a carriageway. No clip.
+
+功能：去掉与车行道相交的建筑 footprint。
+"""
     if not way.closed or len(way.coords_m) < 3:
         return None
 
@@ -249,7 +259,10 @@ def lod_cell_key(x_m: float, y_m: float, cell_m: float) -> tuple[int, int]:
 
 
 def group_buildings_for_lod(items: list, cell_m: float) -> dict[tuple[int, int], list]:
-    """Group by footprint centroid."""
+    """Group by footprint centroid.
+
+功能：按 LOD 网格尺寸分组建筑。
+"""
     groups: dict[tuple[int, int], list[Any]] = {}
     for item in items:
         footprint = item.get("footprint") if isinstance(item, dict) else getattr(item, "footprint", None)

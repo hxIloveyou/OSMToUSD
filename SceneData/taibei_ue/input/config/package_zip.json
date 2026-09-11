@@ -1,0 +1,12 @@
+// package_zip step — 将 scene output/（USD + CostMap）打成 zip
+{
+  "output": "{scene_id}.zip",
+  "compression": "deflated",
+  "exclude": [
+    "backups/**",
+    "debug/**",
+    "**/*.pending.json",
+    "*.zip",
+    "**/*.zip"
+  ]
+}

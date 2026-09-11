@@ -1,4 +1,5 @@
 """DEM heightmap and ortho imagery export."""
+# 中文说明：DEM 高度图与正射影像导出。
 
 from __future__ import annotations
 
@@ -101,6 +102,7 @@ def write_heightmap(
     *,
     max_side: int = _HEIGHTMAP_MAX_SIDE,
 ) -> RasterMeta:
+    """功能：写出 UE 高度图与元数据。"""
     size_px = _odd_target_size(extent.width, extent.height, max_side)
     left, bottom, right, top, utm_origin = _utm_bounds(origin, extent)
     mpp = _meters_per_pixel(extent, size_px)
@@ -171,6 +173,7 @@ def write_ortho(
     out_json: Path,
     max_dim: int = 8192,
 ) -> RasterMeta:
+    """功能：写出正射 PNG/GeoTIFF 相关产物。"""
     long_side = max(4096, min(max_dim, 8192))
     size_px = _odd_target_size(extent.width, extent.height, long_side)
     left, bottom, right, top, utm_origin = _utm_bounds(origin, extent)
@@ -381,7 +384,10 @@ def write_terrain_alignment(
     meters_per_unit: float = 1.0 / CM_PER_M,
     world_rel: str = "",
 ) -> Path:
-    """Write one JSON that places heightmap + ortho in the USD city frame. No mesh."""
+    """Write one JSON that places heightmap + ortho in the USD city frame. No mesh.
+
+功能：写出地形对齐 JSON。
+"""
     utm_origin = _utm_xy(origin.lon, origin.lat, origin.epsg)
     mpu = float(meters_per_unit)
     cm = 1.0 / mpu

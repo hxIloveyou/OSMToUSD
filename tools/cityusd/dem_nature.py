@@ -1,4 +1,5 @@
 """DEM → Nature BMP + slope PGM for nav2/nature (schema v0.3)."""
+# 中文说明：DEM → nature BMP 与坡度 PGM。
 
 from __future__ import annotations
 
@@ -101,6 +102,7 @@ def build_nav2_nature_from_dem_utm(
     nature_dir_rel: str = NAV2_NATURE,
     dem_dir_rel: str = NAV2_DEM,
 ) -> dict[str, Any]:
+    """功能：DEM UTM → nature 产物。"""
     if not dem_utm_path.is_file():
         raise FileNotFoundError(f"DEM GeoTIFF not found: {dem_utm_path}")
 

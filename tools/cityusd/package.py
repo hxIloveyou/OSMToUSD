@@ -1,3 +1,4 @@
+# 中文说明：Scene Package 元数据、World 子层、overlay 空层与打包辅助。
 from __future__ import annotations
 
 import json
@@ -64,7 +65,10 @@ CITY_FOLDERS = ("Roads", "Buildings", "Water", "Vegetation", "Lamps", "Signs")
 
 
 def write_world(path: Path, scene_id: str, sublayers: list[str]) -> None:
-    """Root stage with an explicit City skeleton so UE Outliner shows folders."""
+    """Root stage with an explicit City skeleton so UE Outliner shows folders.
+
+功能：写出 World USD（子层列表）。
+"""
     stage = configure_stage(path)
     root = stage.GetRootLayer()
     root.subLayerPaths = list(sublayers)
@@ -96,6 +100,7 @@ def build_package_meta(
     crs: Optional[dict] = None,
     **overrides,
 ) -> dict:
+    """功能：构建 package meta 字典。"""
     payload = {
         "spec_version": "1.0",
         "scene_id": scene_id,

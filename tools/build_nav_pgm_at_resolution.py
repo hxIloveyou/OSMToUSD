@@ -6,9 +6,12 @@ Uses the same OSM polygon logic as the nav_pgm pipeline step.
 
 Usage:
   python tools/build_nav_pgm_at_resolution.py \\
-    --package output/ScenePackages/taibei_ue_20260831 \\
-    --config configs/nav_pgm_osm_only_3m.json
+    --package <USD package dir> \\
+    --config configs/default/nav_pgm_3m.json
 """
+# 中文说明：
+# 用途：在已有包上另写指定分辨率占据图（通常 variants/），不覆盖默认 connected/。
+# 注意：禁止写入 NAV2_CONNECTED 目录。
 
 from __future__ import annotations
 
@@ -29,6 +32,10 @@ from cityusd.pipeline.terrain import load_extent_context  # noqa: E402
 
 
 def _find_osm(package_dir: Path) -> Path:
+    """Find staged OSM under the package inputs tree.
+
+    功能：在包内 staging 目录查找已拷贝的 OSM 文件。
+    """
     staging = package_dir / "inputs" / "build_data" / "osm"
     if staging.is_dir():
         for ext in ("*.osm.pbf", "*.osm"):
@@ -39,13 +46,17 @@ def _find_osm(package_dir: Path) -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Rasterize a sibling occupancy grid from package OSM + config.
+
+    功能：读取配置与包内 OSM，栅格化旁路占据图。
+    """
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--package", type=Path, required=True, help="Existing Scene Package dir")
     p.add_argument(
         "--config",
         type=Path,
         default=None,
-        help="nav_pgm JSON (default: configs/nav_pgm_osm_only_3m.json)",
+        help="nav_pgm JSON (default: configs/default/nav_pgm_3m.json)",
     )
     p.add_argument(
         "--resolution-m",
@@ -61,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     root = _TOOLS.parent
-    cfg_path = (args.config or (root / "configs" / "nav_pgm_osm_only_3m.json")).resolve()
+    cfg_path = (args.config or (root / "configs" / "default" / "nav_pgm_3m.json")).resolve()
     step_cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
     if args.resolution_m is not None:
         step_cfg["resolution_m"] = float(args.resolution_m)
@@ -74,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
     map_yaml = package_dir / str(outputs.get("map_yaml", map_pgm.parent / "map.yaml"))
     map_meta = package_dir / str(outputs.get("meta_json", map_pgm.parent / "map_meta.json"))
 
+    # Refuse writing into default connected/ to avoid clobbering primary CostMap
     if map_pgm.resolve().parent == (package_dir / NAV2_CONNECTED).resolve():
         print("ERROR: refusing to write into nav2/connected/ — change outputs in config", file=sys.stderr)
         return 2

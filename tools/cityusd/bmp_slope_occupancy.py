@@ -3,6 +3,7 @@
 Height decode (matches elevation_to_bmp):
   h_m = scale * (gray - 128)
 """
+# 中文说明：由高程 BMP 生成坡度占据（NATURE/Nav2）。
 
 from __future__ import annotations
 

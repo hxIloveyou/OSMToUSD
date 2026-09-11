@@ -1,4 +1,5 @@
 """Map OSM tags / building height to package texture keys."""
+# 中文说明：OSM 标签/建筑高度 → 贴图键映射。
 
 from __future__ import annotations
 

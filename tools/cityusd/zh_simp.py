@@ -1,4 +1,5 @@
 """Traditional-to-simplified conversion for OSM road-name sign text."""
+# 中文说明：路牌繁体 → 简体转换。
 
 from __future__ import annotations
 

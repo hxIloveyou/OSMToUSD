@@ -63,6 +63,11 @@ def test_tiny_package(tmp_path):
     assert "LOD0" in names
     assert "LOD1" not in names and "LOD2" not in names
     assert UsdGeom.Mesh(bldg_meshes[0]).GetDoubleSidedAttr().Get() is True
+    tiles = list((out / "layers" / "tiles").glob("buildings_*.usd*"))
+    assert tiles, "expected layers/tiles/buildings_*.usdc payloads"
+    bldg_root = bld.GetPrimAtPath("/World/City/Buildings")
+    assert bldg_root.IsValid() and bldg_root.HasAuthoredPayloads()
+    assert bldg_root.GetCustomData().get("buildings_tiles") is True
     signs_path = out / "layers" / "city_signs.usdc"
     if not signs_path.exists():
         signs_path = out / "layers" / "city_signs.usda"

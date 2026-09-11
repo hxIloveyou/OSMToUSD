@@ -1,3 +1,4 @@
+# 中文说明：assemble_world 步骤：组装 World_*.usda 与 package meta。
 from __future__ import annotations
 
 import json
@@ -175,6 +176,7 @@ def _write_assets_used(package_dir: Path) -> None:
 
 
 def run_assemble_world(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]:
+    """功能：组装 World 与 meta.json。"""
     step = cfg.step("assemble_world")
     if step is None:
         raise RuntimeError("assemble_world step missing from pipeline")
@@ -240,6 +242,22 @@ def run_assemble_world(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> li
             meta["nav"]["map_soft_pgm"] = f"{p}/connected/map_soft.pgm"
     if (cfg.costmap_2d_dir() / "nature" / "nature_bmp.yaml").is_file():
         meta.setdefault("nav2", {})["nature"] = f"{cfg.costmap_rel_prefix()}/nature/nature_bmp.yaml"
+
+    cost3 = cfg.costmap_3d_dir()
+    bt_hits = sorted(cost3.glob("*.bt")) if cost3.is_dir() else []
+    if bt_hits:
+        bt = bt_hits[0]
+        meta_json = cost3 / f"{bt.stem}_meta.json"
+        if not meta_json.is_file():
+            # fallback: any *_meta.json next to .bt
+            metas = sorted(cost3.glob("*_meta.json"))
+            meta_json = metas[0] if metas else meta_json
+        p3 = f"../{cfg.scene_id}-CostMap/3D"
+        meta["nav3d"] = {
+            "octomap_bt": f"{p3}/{bt.name}",
+            "meta_json": f"{p3}/{meta_json.name}" if meta_json.is_file() else None,
+        }
+
     meta["paths"] = {
         "usd": "./",
         "costmap_2d": cfg.costmap_rel_prefix(),

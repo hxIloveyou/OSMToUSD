@@ -1,3 +1,4 @@
+# 中文说明：坐标：WGS84 ↔ 局部米制 / UTM 变换。
 from __future__ import annotations
 
 from functools import lru_cache
@@ -42,17 +43,20 @@ def origin_utm(lon: float, lat: float, epsg: int) -> Tuple[float, float]:
 
 
 def make_origin(lon: float, lat: float, height_m: float = 0.0) -> Origin:
+    """功能：由经纬度创建局部坐标原点。"""
     epsg = utm_epsg(lon, lat)
     return Origin(lon=lon, lat=lat, height_m=height_m, epsg=epsg)
 
 
 def lonlat_to_local(lon: float, lat: float, origin: Origin) -> Tuple[float, float]:
+    """功能：WGS84 → 局部米制坐标。"""
     east, north = lonlat_to_utm(lon, lat, origin.epsg)
     origin_east, origin_north = origin_utm(origin.lon, origin.lat, origin.epsg)
     return east - origin_east, north - origin_north
 
 
 def local_to_lonlat(x_m: float, y_m: float, origin: Origin) -> Tuple[float, float]:
+    """功能：局部米制 → WGS84。"""
     origin_east, origin_north = origin_utm(origin.lon, origin.lat, origin.epsg)
     return utm_to_lonlat(origin_east + x_m, origin_north + y_m, origin.epsg)
 

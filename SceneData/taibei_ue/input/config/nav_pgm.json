@@ -1,0 +1,45 @@
+// nav_pgm step — OSM → Nav2 占据栅格（写入 {scene_id}-CostMap/2D/）
+{
+  // 栅格分辨率（米/像素）；1.0 = 每格 1 米
+  "resolution_m": 1.0,
+
+  // 输出模式：connected = 连通可行驶区域占用图
+  "mode": "connected",
+
+  // true：建筑用简化多边形栅格化（更快、更粗）
+  "simple_buildings": false,
+
+  "sources": {
+    // 占据来源标识（osm_connected = 道路连通多边形逻辑）
+    "occupancy": "osm_connected"
+  },
+
+  // 可视化软边（抗锯齿预览）；Nav2 规划仍用二进制 map.pgm
+  "soft_edge": {
+    "enabled": true,                      // 是否生成 map_soft.pgm
+    "radius_m": 2.0,                      // 软边羽化半径（米）
+    "output": "connected/map_soft.pgm",   // 相对 CostMap/2D 的路径
+    "note": "Visualization anti-alias; keep map.pgm binary for Nav2."
+  },
+
+  // 调试用：在 USD/debug 下生成导航对齐叠加层（不要合成进 World）
+  "align_overlay": {
+    "enabled": true,           // 生产环境建议 false
+    "max_preview_side": 4096,  // 预览图最长边（像素）
+    "z_cm": 50.0,              // 叠加平面高度（厘米，USD 局部）
+    "compose_into_world": false,
+    "note": "DEBUG ONLY. Set enabled:false for production. Never composed into World."
+  },
+
+  // 相对 {scene_id}-CostMap/2D/ 的产物路径
+  "outputs": {
+    "out_dir": "connected",
+    "map_pgm": "connected/map.pgm",                 // Nav2 二进制占据图
+    "cost_pgm": "connected/cost.pgm",               // 代价图（当前与 map 同源策略）
+    "map_soft_pgm": "connected/map_soft.pgm",       // 软边可视化
+    "map_local_yaml": "connected/map_local.yaml",   // 局部坐标 map.yaml
+    "map_yaml_utm": "connected/map.yaml",           // UTM 版 map.yaml
+    "valhalla_origin_yaml": "connected/valhalla_origin.yaml", // 原点/对齐辅助
+    "meta_json": "connected/map_meta.json"          // 栅格元数据
+  }
+}

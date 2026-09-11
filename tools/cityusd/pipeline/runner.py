@@ -1,3 +1,4 @@
+# 中文说明：流水线调度：按依赖执行 step、写 manifest、支持 resume / backup。
 from __future__ import annotations
 
 import hashlib
@@ -8,6 +9,7 @@ from typing import Callable, Optional
 
 from cityusd.pipeline.assemble_world import run_assemble_world
 from cityusd.pipeline.nav2_nature import run_nav2_nature
+from cityusd.pipeline.nav_octomap import run_nav_octomap
 from cityusd.pipeline.nav_pgm import run_nav_pgm
 from cityusd.pipeline.osm_city_usd import run_osm_city_usd
 from cityusd.pipeline.osm_labels import run_osm_labels
@@ -40,7 +42,15 @@ def _input_hash(
         if step and (step.config_ref or step.config):
             blob["step_config"] = load_step_config_ref(cfg, step, package_dir)
     if package_dir is not None and (package_dir / "extent.json").is_file():
-        if step_name in (None, "terrain", "nav_pgm", "nav2_nature", "osm_city_usd", "osm_labels"):
+        if step_name in (
+            None,
+            "terrain",
+            "nav_pgm",
+            "nav_octomap",
+            "nav2_nature",
+            "osm_city_usd",
+            "osm_labels",
+        ):
             blob["extent"] = json.loads((package_dir / "extent.json").read_text(encoding="utf-8"))
     return "sha256:" + hashlib.sha256(
         json.dumps(blob, sort_keys=True, ensure_ascii=False, default=str).encode("utf-8")
@@ -48,6 +58,7 @@ def _input_hash(
 
 
 def run_resolve_extent(cfg: PipelineConfig, package_dir: Path, log: LogFn = _log_default) -> dict:
+    """功能：执行 resolve_extent，写出 extent.json。"""
     log("[resolve_extent] computing spatial contract...")
     payload = resolve_extent(
         frame=cfg.frame,
@@ -102,6 +113,11 @@ def _run_nav_pgm_step(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> tup
     return None, outputs
 
 
+def _run_nav_octomap_step(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> tuple[None, list[str]]:
+    outputs = run_nav_octomap(cfg, package_dir, log)
+    return None, outputs
+
+
 def _run_nav2_nature_step(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> tuple[None, list[str]]:
     outputs = run_nav2_nature(cfg, package_dir, log)
     return None, outputs
@@ -128,6 +144,7 @@ STEP_RUNNERS = {
     "osm_city_usd": _run_osm_city_usd_step,
     "osm_labels": _run_osm_labels_step,
     "nav_pgm": _run_nav_pgm_step,
+    "nav_octomap": _run_nav_octomap_step,
     "nav2_nature": _run_nav2_nature_step,
     "overlay": _run_overlay_step,
     "assemble_world": _run_assemble_world_step,
@@ -142,6 +159,7 @@ def run_pipeline(
     resume: bool = False,
     log: LogFn = _log_default,
 ) -> Path:
+    """功能：按配置执行整条流水线；返回 USD package 目录。"""
     prepare_release_run(cfg, log)
 
     cfg.ensure_dirs()

@@ -1,0 +1,32 @@
+// assemble_world step — 组装 World_{scene_id}.usda 与 package meta
+{
+  // 输出布局标识（写入 meta.json）
+  "layout": "cityusd_v1",
+
+  // World 根文件名；{scene_id} 会被替换
+  "world_file": "World_{scene_id}.usda",
+
+  // true：sublayers 列表里缺失的文件跳过；false：缺失则失败
+  "skip_missing_sublayers": true,
+
+  // 是否把 OSM 属性 catalog 合成进 World（通常 false，属性走查询 API）
+  "include_osm_attributes": false,
+
+  // World 子层顺序（相对 USD 根）；不存在且 skip_missing=true 时跳过
+  "sublayers": [
+    "./layers/environment.usda",      // 环境/光照等
+    "./layers/terrain.usda",          // 地形引用
+    "./layers/nav.usda",              // 导航层引用
+    "./layers/city_water.usdc",       // 水体
+    "./layers/city_vegetation.usdc",  // 植被
+    "./layers/city_roads.usdc",       // 道路
+    "./layers/city_buildings.usdc",   // 建筑
+    "./layers/city_lamps.usdc",       // 路灯
+    "./layers/city_signs.usdc",       // 标志
+    "./overlay/equipment.usda",
+    "./overlay/infrastructure.usda",
+    "./overlay/obstacles_static.usda",
+    "./overlay/obstacles_dynamic.usda",
+    "./overlay/props.usda"
+  ]
+}

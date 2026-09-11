@@ -1,3 +1,4 @@
+# 中文说明：terrain 步骤：DEM/正射 → UTM 栅格、UE 高度图与正射 PNG。
 from __future__ import annotations
 
 import json
@@ -37,6 +38,7 @@ def _resolve_input(cfg: PipelineConfig, key: str) -> Optional[Path]:
 
 
 def load_extent_context(package_dir: Path) -> tuple[dict, Origin, ExtentM]:
+    """功能：从 package 读取 extent，返回 payload/Origin/ExtentM。"""
     extent_path = package_dir / "extent.json"
     if not extent_path.is_file():
         raise FileNotFoundError(f"Missing extent.json — run resolve_extent first: {extent_path}")
@@ -211,6 +213,7 @@ def _write_utm_geotiff(
 
 
 def run_terrain(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]:
+    """功能：生成地形相关产物（DEM/高度图/正射）。"""
     step = cfg.step("terrain")
     if step is None:
         raise RuntimeError("terrain step missing from pipeline")

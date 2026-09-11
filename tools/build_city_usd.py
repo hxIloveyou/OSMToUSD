@@ -1,10 +1,14 @@
 """CLI orchestrator: scan data → OSM city Scene Package."""
+# 中文说明：
+# 用途：扫描 --data，生成城市几何 USD；流水线 osm_city_usd 以 --pipeline-mode 调用。
+# 主要入口：main / _main_impl；_write_*_layer 写各层；_extrude_* 建筑挤出。
 
 from __future__ import annotations
 
 import argparse
 import json
 import math
+import shutil
 import sys
 from collections import defaultdict
 from datetime import datetime
@@ -97,6 +101,8 @@ from cityusd.roads import (
 from cityusd.scan_inputs import scan_data_dir
 from cityusd.types import CM_PER_M, LAYER_Z_M, ExtentM, Origin
 from cityusd.usd_write import (
+    add_payload,
+    building_tile_filename,
     configure_stage,
     ensure_marking_textures,
     save_layer_atomic,
@@ -139,12 +145,14 @@ class BuildStats:
         self.trees = 0
         self.lamps = 0
         self.junctions = 0
+        self.building_tiles = 0
 
 
 Mesh = tuple[list, list, list]
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    """功能：解析参数、设置路宽缩放并调用主实现。"""
     args = _parse_args(argv)
     data_dir = Path(args.data)
     out_dir = Path(args.output)
@@ -159,6 +167,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 
 def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
+    """功能：扫描输入 → 解析 OSM → 按图层写出 USD/导航/地形等。"""
     found = scan_data_dir(data_dir)
     if found.osm is None:
         print("error: no OSM file found under --data; not writing output", file=sys.stderr)
@@ -465,8 +474,8 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
     facade_photos: dict = {}
     roof_photos: list = []
     facade_uv_modes: dict = {}
+    lib_root = resolve_asset_library_root(found.assets_dir, data_dir)
     if "buildings" in layers:
-        lib_root = resolve_asset_library_root(found.assets_dir, data_dir)
         if lib_root is not None:
             facade_photos, roof_photos, facade_uv_modes = bind_inbox_photos(lib_root)
         else:
@@ -488,6 +497,7 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
         facade_photos=facade_photos,
         roof_photos=roof_photos,
         facade_uv_modes=facade_uv_modes,
+        library_dir=lib_root,
     )
     uv_map = written_tex.pop("_facade_uv", {}) or {}
     layer_tex = {
@@ -528,13 +538,23 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
         print("USD city_buildings ...", flush=True)
         dest_b = layers_dir / "city_buildings.usdc"
         scratch_b = layers_dir / "city_buildings.scratch.usdc"
+        tiles_dir = layers_dir / "tiles"
+        buildings_tiles = bool(getattr(args, "buildings_tiles", True))
         try:
             st = configure_stage(scratch_b)
             rel = "./layers/city_buildings.usdc"
         except Exception as exc:
             print(f"warning: scratch buildings layer failed: {exc}", file=sys.stderr)
             st, dest_b, rel = _create_city_layer(layers_dir, "city_buildings")
-        _write_buildings_layer(st, building_items, stats, layer_tex, uv_map)
+        _write_buildings_layer(
+            st,
+            building_items,
+            stats,
+            layer_tex,
+            uv_map,
+            tiles_dir=tiles_dir,
+            tiled=buildings_tiles,
+        )
         saved = save_layer_atomic(st, dest_b)
         if saved.resolve() != dest_b.resolve():
             rel = f"./layers/{saved.name}"
@@ -549,6 +569,9 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
                 )
                 print(f"world sublayer retargeted to {rel}", flush=True)
         city_rels["city_buildings"] = rel
+        if buildings_tiles and stats.building_tiles:
+            city_rels["city_buildings_tiles"] = "./layers/tiles/"
+            print(f"USD building tiles={stats.building_tiles} under layers/tiles/", flush=True)
     if "lamps" in layers:
         print("USD city_lamps ...", flush=True)
         st, _p, rel = _create_city_layer(layers_dir, "city_lamps")
@@ -676,6 +699,7 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
             "stats": {
                 "roads": stats.roads,
                 "buildings": stats.buildings,
+                "building_tiles": stats.building_tiles,
                 "water": stats.water,
                 "vegetation": stats.vegetation,
                 "markings": stats.markings,
@@ -702,6 +726,7 @@ def _main_impl(args: argparse.Namespace, data_dir: Path, out_dir: Path) -> int:
 
 
 def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
+    """功能：定义并解析 build_city_usd 命令行参数。"""
     parser = argparse.ArgumentParser(description="Build OSM City USD Scene Package")
     parser.add_argument("--data", required=True, help="Input data directory")
     parser.add_argument("--output", required=True, help="Scene Package output directory")
@@ -740,6 +765,12 @@ def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
         default=1.0,
         help="Multiply OSM/inferred road widths (and carriageway drop distance). Default 1.0",
     )
+    parser.add_argument(
+        "--buildings-tiles",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Write buildings as layers/tiles/*.usdc payloads (default on)",
+    )
     return parser.parse_args(argv)
 
 
@@ -767,6 +798,7 @@ _LAYER_ALIASES = {
 
 
 def _layer_set(raw: Optional[str]) -> set[str]:
+    """功能：把 --layers 字符串解析为图层名集合（支持别名与 furniture→lamps+signs）。"""
     text = (raw or "all").strip().lower()
     if text in {"all", "*"}:
         return set(ALL_LAYER_KEYS)
@@ -783,6 +815,7 @@ def _layer_set(raw: Optional[str]) -> set[str]:
 
 
 def _origin_extent_from_dem(dem_path: Path) -> tuple[Optional[Origin], Optional[ExtentM]]:
+    """功能：从 DEM GeoTIFF 推算场景原点与局部范围。"""
     import rasterio
     from rasterio.warp import transform_bounds
 
@@ -1234,11 +1267,23 @@ def _write_roads_layer(
         stage,
         "/World/Looks/Arrow",
         (1.0, 1.0, 1.0),
-        texture_path=tex.get("arrow_decal", tex.get("arrow_fill")),
+        texture_path=tex.get("arrow_straight", tex.get("arrow_decal", tex.get("arrow_fill"))),
         roughness=0.45,
         wrap="clamp",
         opacity_from_alpha=True,
     )
+    from cityusd.road_assets import ARROW_KIND_ORDER
+
+    for kind in ARROW_KIND_ORDER:
+        write_preview_material(
+            stage,
+            f"/World/Looks/Arrow_{kind}",
+            (1.0, 1.0, 1.0),
+            texture_path=tex.get(f"arrow_{kind}", tex.get("arrow_straight", tex.get("arrow_decal"))),
+            roughness=0.45,
+            wrap="clamp",
+            opacity_from_alpha=True,
+        )
 
     z_road = LAYER_Z_M["roads"]
     j_points = []
@@ -1323,29 +1368,38 @@ def _write_roads_layer(
 
     UsdGeom.Xform.Define(stage, "/World/City/Roads/Arrows")
     if arrows:
-        pts, counts, indices, uvs = arrow_decal_quad_cm()
-        proto = "/World/City/Roads/Arrows/DecalProto"
-        write_mesh(
-            stage,
-            proto,
-            pts,
-            counts,
-            indices,
-            "/World/Looks/Arrow",
-            uvs=uvs,
-            display_color=(1.0, 1.0, 1.0),
-            double_sided=True,
-        )
-        stage.GetPrimAtPath(proto).SetCustomData({"kind": "decal", "collisionEnabled": False})
+        from cityusd.road_assets import ARROW_KIND_ORDER
+
+        tip = "up" if tex.get("arrow_straight") != tex.get("arrow_decal") else "right"
+        pts, counts, indices, uvs = arrow_decal_quad_cm(tip=tip)
+        proto_paths: list[str] = []
+        for kind in ARROW_KIND_ORDER:
+            proto = f"/World/City/Roads/Arrows/DecalProto_{kind}"
+            write_mesh(
+                stage,
+                proto,
+                pts,
+                counts,
+                indices,
+                f"/World/Looks/Arrow_{kind}",
+                uvs=uvs,
+                display_color=(1.0, 1.0, 1.0),
+                double_sided=True,
+            )
+            stage.GetPrimAtPath(proto).SetCustomData({"kind": "decal", "collisionEnabled": False, "arrow": kind})
+            proto_paths.append(proto)
+        kind_to_idx = {k: i for i, k in enumerate(ARROW_KIND_ORDER)}
         z_cm = (LAYER_Z_M["roads"] + 0.03) * CM_PER_M
         positions = [(a["xy"][0] * CM_PER_M, a["xy"][1] * CM_PER_M, z_cm) for a in arrows]
         yaws = [a["yaw_rad"] for a in arrows]
+        proto_indices = [kind_to_idx.get(str(a.get("kind") or "straight"), 0) for a in arrows]
         write_point_instancer(
             stage,
             "/World/City/Roads/Arrows/I_Arrows",
-            proto,
+            proto_paths,
             positions,
             yaws,
+            proto_indices=proto_indices,
             cull_custom_data=instancer_cull_custom_data(CULL_ARROW_START_M, CULL_ARROW_END_M),
         )
         inst_prim = stage.GetPrimAtPath("/World/City/Roads/Arrows/I_Arrows")
@@ -1356,26 +1410,8 @@ def _write_roads_layer(
         stats.arrows = len(arrows)
 
 
-def _write_buildings_layer(
-    stage, building_items, stats: BuildStats, tex: dict[str, str], uv_map: dict | None = None
-) -> None:
-    uv_map = uv_map or {}
-    UsdGeom.Xform.Define(stage, "/World/City")
-    bldg_xf = UsdGeom.Xform.Define(stage, "/World/City/Buildings")
-    policy = cull_policy_summary()
-    # Flat keys only — nested list/dict can fail in USD customData.
-    bldg_xf.GetPrim().SetCustomData(
-        {
-            "cull_policy_note": str(policy.get("note") or ""),
-            "cull_building_m": float(policy.get("building_m") or 0.0),
-            "cull_lamp_start_m": float(policy["lamp_m"][0]) if policy.get("lamp_m") else 0.0,
-            "cull_lamp_end_m": float(policy["lamp_m"][1]) if policy.get("lamp_m") else 0.0,
-            "cull_sign_start_m": float(policy["sign_m"][0]) if policy.get("sign_m") else 0.0,
-            "cull_sign_end_m": float(policy["sign_m"][1]) if policy.get("sign_m") else 0.0,
-            "cull_arrow_start_m": float(policy["arrow_m"][0]) if policy.get("arrow_m") else 0.0,
-            "cull_arrow_end_m": float(policy["arrow_m"][1]) if policy.get("arrow_m") else 0.0,
-        }
-    )
+def _install_building_materials(stage, tex: dict[str, str]) -> None:
+    """功能：在 index 层写入建筑 Looks（tile mesh 通过路径绑定）。"""
     for band in ("low", "mid", "high", "tower"):
         write_preview_material(
             stage,
@@ -1404,7 +1440,38 @@ def _write_buildings_layer(
         )
     write_preview_material(stage, "/World/Looks/Building", (0.76, 0.72, 0.66), texture_path=tex.get("facade_mid"))
 
+
+def _write_buildings_layer(
+    stage,
+    building_items,
+    stats: BuildStats,
+    tex: dict[str, str],
+    uv_map: dict | None = None,
+    *,
+    tiles_dir: Path | None = None,
+    tiled: bool = True,
+) -> None:
+    uv_map = uv_map or {}
+    UsdGeom.Xform.Define(stage, "/World/City")
+    bldg_xf = UsdGeom.Xform.Define(stage, "/World/City/Buildings")
+    policy = cull_policy_summary()
+    # Flat keys only — nested list/dict can fail in USD customData.
+    bldg_cd = {
+        "cull_policy_note": str(policy.get("note") or ""),
+        "cull_building_m": float(policy.get("building_m") or 0.0),
+        "cull_lamp_start_m": float(policy["lamp_m"][0]) if policy.get("lamp_m") else 0.0,
+        "cull_lamp_end_m": float(policy["lamp_m"][1]) if policy.get("lamp_m") else 0.0,
+        "cull_sign_start_m": float(policy["sign_m"][0]) if policy.get("sign_m") else 0.0,
+        "cull_sign_end_m": float(policy["sign_m"][1]) if policy.get("sign_m") else 0.0,
+        "cull_arrow_start_m": float(policy["arrow_m"][0]) if policy.get("arrow_m") else 0.0,
+        "cull_arrow_end_m": float(policy["arrow_m"][1]) if policy.get("arrow_m") else 0.0,
+        "buildings_tiles": bool(tiled),
+    }
+    bldg_xf.GetPrim().SetCustomData(bldg_cd)
+    _install_building_materials(stage, tex)
+
     lod0 = LOD_LEVELS[0]
+    cell_size = float(lod0["cell_size_m"])
     z_bldg = LAYER_Z_M["buildings"]
 
     extruded: dict[int, object] = {}
@@ -1433,8 +1500,67 @@ def _write_buildings_layer(
         if n % 5000 == 0:
             print(f"USD extruded {n}/{len(building_items)} ...", flush=True)
 
-    grouped0 = group_buildings_for_lod(building_items, lod0["cell_size_m"])
+    grouped0 = group_buildings_for_lod(building_items, cell_size)
     print(f"USD LOD0 cells={len(grouped0)} merge by storey band and facade variant ...", flush=True)
+
+    if tiled:
+        if tiles_dir is None:
+            raise ValueError("tiles_dir required when tiled=True")
+        if tiles_dir.exists():
+            shutil.rmtree(tiles_dir)
+        tiles_dir.mkdir(parents=True, exist_ok=True)
+        bldg_prim = bldg_xf.GetPrim()
+        tile_n = 0
+        for (ix, iy), items in grouped0.items():
+            by_key: dict = defaultdict(list)
+            for it in items:
+                payload = extruded.get(id(it))
+                if payload is None:
+                    continue
+                band = facade_band(it["height_m"])
+                var = variants.get(id(it), 0)
+                by_key[(band, var)].append(payload)
+            if not by_key:
+                continue
+            fname = building_tile_filename(ix, iy, cell_size)
+            tile_path = tiles_dir / fname
+            tile_stage = configure_stage(tile_path)
+            UsdGeom.Xform.Define(tile_stage, "/World/City")
+            UsdGeom.Xform.Define(tile_stage, "/World/City/Buildings")
+            wrote_any = False
+            for (band, var), parts in by_key.items():
+                lod0_mesh = _concat_payloads(parts)
+                if lod0_mesh is None:
+                    continue
+                write_building_cell(
+                    tile_stage,
+                    ix,
+                    iy,
+                    {"LOD0": lod0_mesh},
+                    lod0["switch_distance_m"],
+                    cell_size_m=cell_size,
+                    suffix=f"{band}_{var}",
+                )
+                stats.buildings += len(parts)
+                wrote_any = True
+            if not wrote_any:
+                if tile_path.is_file():
+                    tile_path.unlink()
+                continue
+            tile_stage.GetRootLayer().Save()
+            add_payload(bldg_prim, f"./tiles/{fname}", "/World/City/Buildings")
+            tile_n += 1
+            if tile_n % 50 == 0:
+                print(f"USD building tiles written {tile_n} ...", flush=True)
+        stats.building_tiles = tile_n
+        bldg_cd["tile_count"] = int(tile_n)
+        bldg_cd["tile_cell_size_m"] = float(cell_size)
+        bldg_xf.GetPrim().SetCustomData(bldg_cd)
+        return
+
+    # Monolithic: meshes live in city_buildings.usdc
+    if tiles_dir is not None and tiles_dir.is_dir():
+        shutil.rmtree(tiles_dir)
     for (ix, iy), items in grouped0.items():
         by_key: dict = defaultdict(list)
         for it in items:
@@ -1454,10 +1580,11 @@ def _write_buildings_layer(
                 iy,
                 {"LOD0": lod0_mesh},
                 lod0["switch_distance_m"],
-                cell_size_m=lod0["cell_size_m"],
+                cell_size_m=cell_size,
                 suffix=f"{band}_{var}",
             )
             stats.buildings += len(parts)
+    stats.building_tiles = 0
 
 
 def _concat_payloads(payloads: list):

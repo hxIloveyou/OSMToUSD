@@ -1,3 +1,4 @@
+# 中文说明：路灯/标志等点要素沿路布置。
 from __future__ import annotations
 
 import math

@@ -1,0 +1,10 @@
+# 生成 .bt 所需依赖（python run.py）
+# 安装：pip install -r requirements.txt
+
+numpy>=1.24
+osmium>=3.6            # 解析 OSM .pbf
+shapely>=2.0           # 建筑几何与足迹采样
+pyproj>=3.5            # 经纬度 <-> UTM 坐标转换
+rasterio>=1.3          # 读取 DEM 高程
+PyYAML>=6.0            # 解析 config.yaml
+octomap-python>=1.8    # 构建 OctoMap、写出 .bt（import 名是 octomap，勿装错包）

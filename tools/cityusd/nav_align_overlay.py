@@ -10,6 +10,7 @@ Never composed into World_*.usda. Disable via nav_pgm config::
 
 Production zip should exclude ``debug/**``.
 """
+# 中文说明：调试用 PGM↔USD 对齐叠加（不进正式 World）。
 
 from __future__ import annotations
 
@@ -45,7 +46,7 @@ How to view in UE / usdview
   4. Check center AND map edges — residuals should not grow with distance.
 
 Disable generation (production builds)
-  configs/nav_pgm_*.json → "align_overlay": { "enabled": false }
+  configs/default/nav_pgm.json → "align_overlay": { "enabled": false }
   package_zip exclude already drops debug/** when configured.
 
 Remove from an existing package

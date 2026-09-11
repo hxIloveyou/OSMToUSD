@@ -1,4 +1,5 @@
 """Nav / CostMap 2D output layout (relative to SceneData/{id}/output/{id}-CostMap/2D)."""
+# 中文说明：CostMap/2D 相对路径常量（connected/variants/nature）。
 
 from __future__ import annotations
 

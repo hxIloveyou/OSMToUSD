@@ -1,0 +1,99 @@
+# Debug scene (separate scene_id). Shares osm/dem/imagery with taibei_ue via project paths.
+schema_version: "0.3"
+extends:
+  - default/pipeline.yaml
+
+scene:
+  id: taibei_debug
+  title: Taipei debug (OSM-only friendly)
+  id_pattern: "taibei_debug_{timestamp}"
+
+frame:
+  origin_wgs84:
+    longitude: 121.532933
+    latitude: 25.047453
+    height_m: 0.0
+  projection: utm
+  utm_epsg: 32651
+  extent:
+    mode: auto
+    pad_deg: 0.005
+    allow_disjoint: true
+    on_relation:
+      containment: use_smaller
+      partial_overlap: warn
+      disjoint: fail
+
+inputs:
+  osm:
+    path: SceneData/taibei_ue/input/osm/taibei.osm.pbf
+    clip_to_extent: true
+  dem:
+    path: SceneData/taibei_ue/input/dem/cliptb.tif
+    optional: true
+  ortho:
+    path: SceneData/taibei_ue/input/imagery/taibei.tif
+    optional: true
+  asset_library:
+    path: tools/assets/AssetLibrary
+  scene_description:
+    path: uploads/demo_overlay_full_description.json
+    optional: true
+
+output:
+  layout: cityusd_v1
+
+pipeline:
+  - step: resolve_extent
+    enabled: true
+
+  - step: terrain
+    enabled: false
+    depends_on: [resolve_extent]
+    config_ref: terrain.json
+
+  - step: osm_city_usd
+    enabled: true
+    depends_on: [resolve_extent]
+    config_ref: osm_city_usd.json
+
+  - step: osm_labels
+    enabled: true
+    depends_on: [osm_city_usd]
+    config_ref: osm_labels.json
+
+  - step: nav_pgm
+    enabled: true
+    depends_on: [resolve_extent, osm_city_usd]
+    config_ref: nav_pgm.json
+
+  - step: nav2_nature
+    enabled: false
+    depends_on: [resolve_extent, terrain]
+    config_ref: nav2_nature.json
+
+  - step: overlay
+    enabled: false
+    depends_on: [osm_city_usd]
+    config_ref: overlay.json
+
+  - step: assemble_world
+    enabled: true
+    depends_on: [osm_city_usd, nav_pgm, osm_labels]
+    config_ref: assemble_world.json
+
+  - step: package_zip
+    enabled: false
+    depends_on: [assemble_world]
+    config_ref: package_zip.json
+
+runtime:
+  on_step_fail: stop
+  resume: true
+  write_intermediate_configs: true
+  backup_output_before_run: false
+  backup_previous_packages: false
+  backup_dir: backups
+  backup_exclude:
+    - "**/*.zip"
+    - "*.zip"

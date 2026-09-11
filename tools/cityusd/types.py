@@ -1,3 +1,4 @@
+# 中文说明：基础数据类型：Origin、ExtentM 等。
 from dataclasses import dataclass
 from typing import Optional, Tuple
 

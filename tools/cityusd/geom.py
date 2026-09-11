@@ -1,3 +1,4 @@
+# 中文说明：三角化与网格工具（earcut 等）。
 from __future__ import annotations
 
 from typing import List, Tuple

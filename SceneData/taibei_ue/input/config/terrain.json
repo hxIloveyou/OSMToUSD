@@ -1,0 +1,29 @@
+// terrain step — DEM/影像 → UE 高度图与正射图
+{
+  // DEM 重采样到 UTM 网格时的像素边长（米）；越小越细、文件越大
+  "utm_pixel_m": 10.0,
+
+  "heightmap": {
+    // UE Landscape 高度图边长（像素，通常为 2^n+1，如 2017）
+    "size": 2017,
+    // true：输出正方形高度图以适配 UE Landscape
+    "square_ue": true,
+    // 同时写出的高度图格式：r16（引擎导入）与 png（预览）
+    "format": ["r16", "png"]
+  },
+
+  "ortho": {
+    // 正射影像最长边上限（像素），超出则缩小
+    "max_size_px": 4096
+  },
+
+  // 相对 {scene_id}-USD/ 的产物路径
+  "outputs": {
+    "dem_utm": "terrain/dem_utm.tif",           // UTM 重投影后的 DEM
+    "ortho_utm": "terrain/ortho_utm.tif",       // UTM 重投影后的正射 GeoTIFF
+    "heightmap_png": "terrain/heightmap_ue.png", // UE 预览用高度图
+    "heightmap_r16": "terrain/heightmap_ue.r16", // UE Landscape 导入用 16-bit
+    "heightmap_meta": "terrain/heightmap_meta.json", // 高度图范围/分辨率元数据
+    "ortho_png": "terrain/ortho_ue.png"         // UE 贴图用正射 PNG
+  }
+}

@@ -66,7 +66,7 @@ def _minimal_terrain_cfg(tmp_path: Path, dem_path: Path) -> PipelineConfig:
                 step="terrain",
                 enabled=True,
                 depends_on=["resolve_extent"],
-                config_ref="configs/terrain_default.json",
+                config_ref="terrain.json",
             ),
         ],
         runtime={"on_step_fail": "stop"},

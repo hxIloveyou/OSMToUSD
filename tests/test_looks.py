@@ -121,18 +121,18 @@ def test_building_cell_keeps_walls_and_roof_as_geomsubsets(tmp_path):
             "Roof": ([1], "/World/Looks/Roof_0"),
         },
     )
-    write_building_cell(stage, 0, 0, {"LOD0": payload}, suffix="mid_0")
+    write_building_cell(stage, 0, 0, {"LOD0": payload}, suffix="mid_0", cell_size_m=500.0)
     stage.GetRootLayer().Save()
     opened = Usd.Stage.Open(str(path))
-    mesh_prim = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0")
+    mesh_prim = opened.GetPrimAtPath("/World/City/Buildings/c500_0_0_mid_0/LOD0")
     assert mesh_prim.IsValid() and mesh_prim.IsA(UsdGeom.Mesh)
-    assert not opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0_Roof").IsValid()
-    walls = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0/Walls")
-    roof = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0/Roof")
+    assert not opened.GetPrimAtPath("/World/City/Buildings/c500_0_0_mid_0/LOD0_Roof").IsValid()
+    walls = opened.GetPrimAtPath("/World/City/Buildings/c500_0_0_mid_0/LOD0/Walls")
+    roof = opened.GetPrimAtPath("/World/City/Buildings/c500_0_0_mid_0/LOD0/Roof")
     assert walls.IsValid() and walls.GetTypeName() == "GeomSubset"
     assert roof.IsValid() and roof.GetTypeName() == "GeomSubset"
     mesh = UsdGeom.Mesh(mesh_prim)
     assert len(mesh.GetFaceVertexCountsAttr().Get()) == 2
     assert mesh.GetDisplayColorAttr().Get()[0][0] > 0.6
-    parent_cd = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0").GetCustomData()
+    parent_cd = opened.GetPrimAtPath("/World/City/Buildings/c500_0_0_mid_0").GetCustomData()
     assert parent_cd.get("building_mesh_mode") == "closed_mesh_geomsubset"

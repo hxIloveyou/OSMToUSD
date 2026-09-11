@@ -1,0 +1,23 @@
+// nav2_nature step — 由 DEM 生成坡度/悬崖等 nature 代价层
+{
+  // DEM 输入路径（相对 {scene_id}-USD/，通常来自 terrain 步骤）
+  "dem_source": "terrain/dem_utm.tif",
+
+  // true：缺少 DEM 时跳过本步；false：缺失则失败
+  "optional": false,
+
+  // nature 数据集名称（输出子目录/标识）
+  "name": "dem",
+
+  // 超过该坡度（rise/run）开始记为不可通行/高代价（约 19°）
+  "max_slope": 0.35,
+
+  // 超过该坡度视为悬崖（更高代价/阻断）
+  "cliff_slope": 0.70,
+
+  // 相对 CostMap/2D（或包内 nature 根）的输出目录名
+  "outputs": {
+    "nature_dir": "nature",  // nature 图层/ yaml 输出目录
+    "dem_dir": "dem"         // 派生 DEM 相关输出目录
+  }
+}

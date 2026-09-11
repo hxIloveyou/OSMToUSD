@@ -7,10 +7,11 @@ that intersect the widened carriageway are dropped — existing footprint_after_
 
 Usage:
   python tools/build_roads_scaled_usd_package.py \\
-    --source output/ScenePackages/taibei_ue_20260831 \\
-    --output output/ScenePackages/taibei_ue_roads_x2 \\
+    --source <existing USD package> \\
+    --output <sibling package> \\
     --road-width-scale 2
 """
+# 中文说明：旁路包——道路加宽并压掉车行道上建筑，不替代主包。
 
 from __future__ import annotations
 
@@ -54,11 +55,13 @@ _COPY_TREE_NAMES = (
 
 
 def _copy_file(src: Path, dst: Path) -> None:
+    """功能：确保父目录存在后复制单文件。"""
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
 
 
 def _copy_tree(src: Path, dst: Path) -> None:
+    """功能：整树复制（目标已存在则先删除）。"""
     if not src.is_dir():
         return
     if dst.exists():
@@ -67,6 +70,7 @@ def _copy_tree(src: Path, dst: Path) -> None:
 
 
 def seed_package(source: Path, dest: Path) -> None:
+    """功能：从源包拷贝可复用资源；不拷贝道路/建筑层（稍后重建）。"""
     dest.mkdir(parents=True, exist_ok=True)
     for name in ("extent.json", "meta.json", "sources_manifest.json", "assets_used.json"):
         src = source / name
@@ -81,11 +85,11 @@ def seed_package(source: Path, dest: Path) -> None:
         src = layers_src / name
         if src.is_file():
             _copy_file(src, layers_dst / name)
-    # Do not copy roads/buildings — rebuilt below.
+    # 道路/建筑不复制，下面由 build_city_usd 重建
 
 
 def assemble_world(dest: Path, scene_id: str) -> Path:
-    layers_dir = dest / "layers"
+    """功能：按存在的图层组装 World_{scene_id}.usda。"""
     sublayers: list[str] = []
     for rel in (
         "./layers/environment.usda",
@@ -112,6 +116,7 @@ def assemble_world(dest: Path, scene_id: str) -> Path:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """功能：播种旁路包 → 重建加宽道路/建筑 → 组装 World。"""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--source", type=Path, required=True, help="Existing Scene Package")
     p.add_argument("--output", type=Path, required=True, help="New sibling package dir")

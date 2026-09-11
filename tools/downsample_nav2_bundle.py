@@ -11,10 +11,9 @@ Writes a full nav2 sibling folder (does not overwrite --input):
 
 Usage:
   python tools/downsample_nav2_bundle.py \\
-    --input  output/ScenePackages/taibei_ue_20260902/nav2/connected \\
-    --output output/ScenePackages/taibei_ue_20260902/nav2/variants/3m \\
-    --factor 3
+    --input  <connected> --output <variants/3m> --factor 3
 """
+# 中文说明：整套 nav 包降采样；块内任一自由则输出自由（写出 255）。
 
 from __future__ import annotations
 
@@ -31,7 +30,7 @@ _TOOLS = Path(__file__).resolve().parent
 if str(_TOOLS) not in sys.path:
     sys.path.insert(0, str(_TOOLS))
 
-# Source (CityUsd / Nav2 conventional) and destination free values.
+# 源自由值（CityUsd/Nav2 习惯）与输出自由值
 SRC_FREE = 254
 OUT_FREE = 255
 OCCUPIED = 0
@@ -41,6 +40,7 @@ COST_LETHAL = 254
 
 
 def read_pgm(path: Path) -> np.ndarray:
+    """功能：读取 P5 PGM。"""
     raw = path.read_bytes()
     if not raw.startswith(b"P5"):
         raise ValueError(f"not P5: {path}")
@@ -62,6 +62,7 @@ def read_pgm(path: Path) -> np.ndarray:
 
 
 def write_pgm(path: Path, grid: np.ndarray) -> None:
+    """功能：写出 P5 PGM。"""
     ny, nx = grid.shape
     header = f"P5\n{nx} {ny}\n255\n".encode("ascii")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,12 +70,12 @@ def write_pgm(path: Path, grid: np.ndarray) -> None:
 
 
 def _is_free(arr: np.ndarray) -> np.ndarray:
-    """Treat both conventional 254 and already-converted 255 as free."""
+    """功能：254 与 255 均视为自由。"""
     return (arr == SRC_FREE) | (arr == OUT_FREE)
 
 
 def downsample_any_free(grid: np.ndarray, factor: int) -> np.ndarray:
-    """Block OR of free → OUT_FREE(255); everything else → OCCUPIED(0)."""
+    """功能：块内 OR 自由 → OUT_FREE(255)，其余 OCCUPIED(0)。"""
     if factor < 2:
         raise ValueError("factor must be >= 2")
     h, w = grid.shape
@@ -89,6 +90,7 @@ def downsample_any_free(grid: np.ndarray, factor: int) -> np.ndarray:
 
 
 def _read_resolution(yaml_path: Path) -> float | None:
+    """功能：从 yaml 读 resolution。"""
     if not yaml_path.is_file():
         return None
     for line in yaml_path.read_text(encoding="utf-8").splitlines():
@@ -98,6 +100,7 @@ def _read_resolution(yaml_path: Path) -> float | None:
 
 
 def rewrite_yaml_resolution(src: Path, dst: Path, *, factor: int, image_name: str = "map.pgm") -> None:
+    """功能：复制 yaml 并将 resolution 乘以 factor。"""
     text = src.read_text(encoding="utf-8")
     lines: list[str] = []
     for line in text.splitlines():
@@ -120,6 +123,7 @@ def rewrite_meta(
     *,
     factor: int,
 ) -> None:
+    """功能：按新栅格尺寸更新 map_meta.json。"""
     if src is None or not src.is_file():
         return
     meta = json.loads(src.read_text(encoding="utf-8"))
@@ -157,6 +161,7 @@ def rewrite_meta(
 
 
 def process(nav_dir: Path, out_dir: Path, *, factor: int) -> dict:
+    """功能：降采样整套 nav 包并写出旁路目录。"""
     src_map = nav_dir / "map.pgm"
     if not src_map.is_file():
         raise FileNotFoundError(f"missing {src_map}")
@@ -222,12 +227,11 @@ def write_align_overlay_for_bundle(
     resolution_m: float,
     z_cm: float = 50.0,
 ) -> list[str]:
-    """Write debug/nav_align_<res>m/ overlay USD for this nav2 folder."""
+    """功能：为该 nav 目录写 debug 对齐叠加层（不进 World）。"""
     from cityusd.nav_align_overlay import write_nav_align_overlay
     from cityusd.pipeline.terrain import load_extent_context
 
     _, _, extent = load_extent_context(package_dir)
-    # Prefer coverage from map_meta if present (may pad slightly vs extent)
     tag = f"{resolution_m:g}m"
     rel = f"debug/nav_align_{tag}"
     return write_nav_align_overlay(
@@ -244,6 +248,7 @@ def write_align_overlay_for_bundle(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """功能：命令行入口（可只写 overlay）。"""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument(
         "--package",

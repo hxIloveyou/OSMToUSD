@@ -1,3 +1,4 @@
+# 中文说明：osm_city_usd 步骤：调用 build_city_usd 生成城市几何图层。
 from __future__ import annotations
 
 import json
@@ -49,13 +50,13 @@ def _layers_from_config(step_cfg: dict) -> str:
         ("roads", layer_map.get("roads", True)),
         ("buildings", layer_map.get("buildings", True)),
         ("water", layer_map.get("water", True)),
-        ("vegetation", layer_map.get("vegetation", True)),
-        ("lamps", layer_map.get("lamps", True)),
-        ("signs", layer_map.get("signs", True)),
+        ("vegetation", layer_map.get("vegetation", False)),
+        ("lamps", layer_map.get("lamps", False)),
+        ("signs", layer_map.get("signs", False)),
     ):
         if on:
             names.append(key)
-    return ",".join(names) if names else "roads,buildings,water,vegetation,lamps,signs"
+    return ",".join(names) if names else "roads,buildings,water"
 
 
 def _stage_build_data(cfg: PipelineConfig, package_dir: Path, osm_path: Path) -> Path:
@@ -96,6 +97,7 @@ def _import_build_city_usd():
 
 
 def run_osm_city_usd(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]:
+    """功能：调用 build_city_usd 生成城市几何图层。"""
     step = cfg.step("osm_city_usd")
     if step is None:
         raise RuntimeError("osm_city_usd step missing from pipeline")
@@ -134,12 +136,41 @@ def run_osm_city_usd(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list
     scale = step_cfg.get("road_width_scale")
     if scale is not None:
         argv.extend(["--road-width-scale", str(scale)])
+    tiles_cfg = step_cfg.get("buildings_tiles") or {}
+    if tiles_cfg.get("enabled", True):
+        argv.append("--buildings-tiles")
+    else:
+        argv.append("--no-buildings-tiles")
     rc = build_city_usd.main(argv)
     if rc != 0:
         raise RuntimeError(f"build_city_usd exited with code {rc}")
 
-    written: list[str] = []
+    # 关闭的图层：删掉上次遗留的 usdc，避免 assemble_world 仍挂进 World
     layers_dir = package_dir / "layers"
+    layers_dir.mkdir(parents=True, exist_ok=True)
+    enabled = set(build_layers)
+    for name, stem in (
+        ("vegetation", "city_vegetation"),
+        ("lamps", "city_lamps"),
+        ("signs", "city_signs"),
+        ("water", "city_water"),
+        ("roads", "city_roads"),
+        ("buildings", "city_buildings"),
+    ):
+        if name in enabled:
+            continue
+        for suffix in (".usdc", ".usda"):
+            stale = layers_dir / f"{stem}{suffix}"
+            if stale.is_file():
+                stale.unlink()
+                log(f"[osm_city_usd] removed disabled layer {stale.name}")
+        if name == "buildings":
+            tiles_dir = layers_dir / "tiles"
+            if tiles_dir.is_dir():
+                shutil.rmtree(tiles_dir)
+                log("[osm_city_usd] removed disabled layers/tiles/")
+
+    written: list[str] = []
     outputs_cfg = step_cfg.get("outputs") or {}
     for stem, rel in outputs_cfg.items():
         path = package_dir / rel
@@ -163,6 +194,10 @@ def run_osm_city_usd(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list
     stats_path = layers_dir / "city_build_stats.json"
     if stats_path.is_file():
         written.append("layers/city_build_stats.json")
+
+    tiles_dir = layers_dir / "tiles"
+    if tiles_dir.is_dir() and any(tiles_dir.glob("buildings_*.usd*")):
+        written.append("layers/tiles/")
 
     if not any("city_roads" in w for w in written):
         raise RuntimeError("osm_city_usd produced no city_roads layer")

@@ -1,4 +1,5 @@
 """Nav2 occupancy PGM + map.yaml export."""
+# 中文说明：占据栅格 PGM / map.yaml 写出与软边处理。
 
 from __future__ import annotations
 
@@ -81,7 +82,10 @@ def write_soft_edge_pgm(
     resolution_m: float,
     radius_m: float = 2.0,
 ) -> Path:
-    """Read binary occupancy PGM and write soft-edge sibling."""
+    """Read binary occupancy PGM and write soft-edge sibling.
+
+功能：由二进制 map 生成软边可视化 PGM。
+"""
     from cityusd.nav_align_overlay import read_pgm_u8
 
     grid = read_pgm_u8(binary_pgm)
@@ -295,6 +299,7 @@ def rasterize_pgm(
     binary_occupancy: bool = False,
     cost_same_as_map: bool = False,
 ) -> RasterMeta:
+    """功能：把占用/自由多边形栅格化为 PGM 并写 yaml/meta。"""
     if resolution_m <= 0:
         raise ValueError("resolution_m must be positive")
     if extent.width <= 0 or extent.height <= 0:

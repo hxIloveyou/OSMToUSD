@@ -6,9 +6,10 @@ Does not modify the Scene Package pipeline. Reads an existing nav2/connected/map
 
 Usage:
   python tools/remap_pgm_roads_only.py \\
-    --input output/ScenePackages/taibei_ue_20260831/nav2/connected \\
-    --output output/ScenePackages/taibei_ue_20260831/nav2/variants/roads_only
+    --input <…/connected> \\
+    --output <…/variants/roads_only>
 """
+# 中文说明：仅保留 FREE(254) 为可通行，写出旁路目录，不改主产物。
 
 from __future__ import annotations
 
@@ -26,15 +27,18 @@ COST_LETHAL = 254
 
 
 def read_pgm(path: Path) -> tuple[bytes, np.ndarray]:
+    """Read binary P5 PGM; return (header_bytes, grid).
+
+    功能：读取二进制 P5 PGM，返回原始文件头与二维栅格。
+    """
     raw = path.read_bytes()
     if not raw.startswith(b"P5"):
         raise ValueError(f"not a binary PGM P5: {path}")
     i = 0
     newlines = 0
-    # Skip magic + (optional comments) until we have width/height and maxval lines.
-    # Standard writer: "P5\n{nx} {ny}\n255\n" — three newlines after start.
+    # Skip magic + width/height/maxval lines (three newlines)
     while i < len(raw) and newlines < 3:
-        if raw[i] == 10:  # \n
+        if raw[i] == 10:
             newlines += 1
         i += 1
     header = raw[:i]
@@ -57,20 +61,35 @@ def read_pgm(path: Path) -> tuple[bytes, np.ndarray]:
 
 
 def write_pgm(path: Path, header: bytes, grid: np.ndarray) -> None:
+    """Write PGM using original header size and new pixel payload.
+
+    功能：用原文件头尺寸写出 PGM。
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(header + np.ascontiguousarray(grid, dtype=np.uint8).tobytes())
 
 
 def remap_roads_only(grid: np.ndarray) -> np.ndarray:
+    """Keep FREE pixels; force everything else to OCCUPIED.
+
+    功能：仅 FREE 保持可通行，其余（含 unknown 205）一律占用。
+    """
     return np.where(grid == FREE, FREE, OCCUPIED).astype(np.uint8)
 
 
 def occupancy_to_cost_binary(grid: np.ndarray) -> np.ndarray:
-    """No unknown: free=0, everything else lethal=254."""
+    """Map free→0, else lethal 254.
+
+    功能：占据图转二值代价图。
+    """
     return np.where(grid == FREE, COST_FREE, COST_LETHAL).astype(np.uint8)
 
 
 def process(nav_dir: Path, out_dir: Path) -> dict:
+    """Process a nav directory into a roads-only sibling folder.
+
+    功能：处理整个 nav 目录并写出 roads-only 变体。
+    """
     src_map = nav_dir / "map.pgm"
     if not src_map.is_file():
         raise FileNotFoundError(f"missing {src_map}")
@@ -90,7 +109,7 @@ def process(nav_dir: Path, out_dir: Path) -> dict:
 
     src_yaml = nav_dir / "map.yaml"
     if src_yaml.is_file():
-        # Keep origin/resolution/thresholds; image name stays map.pgm.
+        # Keep origin/resolution/thresholds; image name stays map.pgm
         shutil.copy2(src_yaml, out_dir / "map.yaml")
 
     src_meta = nav_dir / "map_meta.json"
@@ -118,6 +137,10 @@ def process(nav_dir: Path, out_dir: Path) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry. Returns 2 if output would overwrite input.
+
+    功能：命令行入口。
+    """
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
         "--input",

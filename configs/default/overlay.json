@@ -1,0 +1,14 @@
+// overlay step — 场景描述 JSON → 设备/设施/障碍等 overlay USD
+{
+  // true：没有 scene_description 输入时跳过本步（不报错）
+  "skip_if_no_description": true,
+
+  // 相对 {scene_id}-USD/ 的 overlay 子层路径
+  "outputs": {
+    "equipment": "overlay/equipment.usda",                 // 设备
+    "infrastructure": "overlay/infrastructure.usda",       // 基础设施
+    "obstacles_static": "overlay/obstacles_static.usda",   // 静态障碍
+    "obstacles_dynamic": "overlay/obstacles_dynamic.usda", // 动态障碍占位
+    "props": "overlay/props.usda"                          // 其它道具
+  }
+}

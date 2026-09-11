@@ -5,8 +5,9 @@ Writes to nav2/connected/ by default (pipeline v0.3 equivalent).
 
 Usage:
   python tools/build_nav_connected_pgm.py \\
-    --package output/ScenePackages/taibei_ue_20260831
+    --package <USD package dir>
 """
+# 中文说明：在已有包上单独写出连通型 map.pgm 套件（默认 NAV2_CONNECTED）。
 
 from __future__ import annotations
 
@@ -27,6 +28,7 @@ from cityusd.pipeline.terrain import load_extent_context  # noqa: E402
 
 
 def _find_osm(package_dir: Path) -> Path:
+    """功能：在包内 staging 目录查找 OSM 数据。"""
     staging = package_dir / "inputs" / "build_data" / "osm"
     for ext in ("*.osm.pbf", "*.osm"):
         hits = sorted(staging.glob(ext))
@@ -42,6 +44,11 @@ def process(
     resolution_m: float,
     simple_buildings: bool,
 ) -> dict:
+    """功能：解析 OSM、栅格化连通占据图并写 yaml/meta。
+
+    返回：
+        含分辨率、多边形数量等元信息的字典。
+    """
     extent_payload, origin, extent = load_extent_context(package_dir)
     osm = parse_osm(_find_osm(package_dir), origin)
     occupied, free = collect_nav_polygons_connected(
@@ -54,6 +61,7 @@ def process(
     map_local_yaml = out_dir / "map_local.yaml"
     map_meta = out_dir / "map_meta.json"
 
+    # free_all_touched：道路缓冲触及的像素均标自由，利于连通
     rasterize_pgm(
         extent,
         occupied,
@@ -102,6 +110,7 @@ def process(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """功能：命令行入口。返回 0 成功，2 拒绝覆盖旧版 nav/。"""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--package", type=Path, required=True, help="Existing Scene Package with extent.json + staged OSM")
     p.add_argument(
@@ -128,7 +137,6 @@ def main(argv: list[str] | None = None) -> int:
         simple_buildings=bool(args.simple_buildings),
     )
 
-    # quick stats
     import numpy as np
 
     raw = (out_dir / "map.pgm").read_bytes()

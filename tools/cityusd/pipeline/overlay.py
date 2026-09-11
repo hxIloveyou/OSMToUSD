@@ -1,3 +1,4 @@
+# 中文说明：overlay 步骤：场景描述 → equipment/infrastructure 等 overlay USD。
 from __future__ import annotations
 
 import json
@@ -30,6 +31,7 @@ def _resolve_input(cfg: PipelineConfig, key: str) -> Path | None:
 
 
 def run_overlay(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]:
+    """功能：根据场景描述生成 overlay USD（可跳过）。"""
     step = cfg.step("overlay")
     if step is None:
         raise RuntimeError("overlay step missing from pipeline")

@@ -12,35 +12,47 @@ with city USD layers and Nav2 cost maps. Intended for later integration into **U
 CityUsd/
   SceneData/
     {scene_id}/
-      input/{osm,dem,imagery}/
+      input/
+        osm/ dem/ imagery/
+        config/                      # full scene configs (edit here)
+          pipeline.yaml
+          osm_city_usd.json
+          terrain.json …
       output/
-        {scene_id}-USD/              # World, layers, textures, …
-        {scene_id}-CostMap/
-          2D/connected/              # map.pgm, cost.pgm, map_soft.pgm, yaml
-          3D/                        # placeholder
-      backups/                       # dated zips of previous output/
-      scene_alignment.json
-  tools/
-    assets/                          # shared AssetLibrary
-    cityusd/
-    build_scene_pipeline.py
+        {scene_id}-USD/
+        {scene_id}-CostMap/2D|3D/
+      backups/
+  configs/default/                   # template for new scenes (+ merge base)
+    pipeline.yaml
+    terrain.json
+    osm_city_usd.json
+    …
+  tools/assets/                      # shared AssetLibrary
 ```
+
+Variants = **separate `scene_id`** (e.g. `taibei_ue`, `taibei_debug`).
+
+Step JSON merge order: `configs/default/{name}` → `SceneData/{id}/input/config/{name}` → step inline `config:`.  
+Per-scene personalization: edit files under `SceneData/{id}/input/config/`.
 
 | Path | Role |
 |------|------|
+| `…/input/config/` | Full scene pipeline + step configs (primary) |
+| `configs/default/` | New-scene template / merge base if a file is missing |
 | `…/output/{id}-USD` | Geometry USD package |
-| `…/output/{id}-CostMap/2D` | Nav / cost rasters (`map_soft.pgm` = 2 m soft edge, viz only) |
-| `…/output/{id}-CostMap/3D` | Placeholder for external 3D cost |
-| `…/backups/` | Auto zip of previous `output/` before regenerate (`*.zip` excluded) |
-| `tools/assets` | Shared assets |
+| `…/output/{id}-CostMap/2D` | Nav / cost rasters (PGM) |
+| `…/output/{id}-CostMap/3D` | OctoMap (`.bt` + meta; pipeline `nav_octomap`) |
+| `…/backups/` | Dated zip of previous `output/` before regenerate |
 
 ## Quick start
 
 ```powershell
 cd E:\UEWork\ROS2Test\CityUsd_v2
 $env:PYTHONPATH="tools"
-python tools/build_scene_pipeline.py --config examples/taibei_ue.pipeline.yaml
+python tools/build_scene_pipeline.py --scene taibei_ue
 ```
+
+各脚本用途见 **[tools/README.md](tools/README.md)**。
 
 ## Recovery
 

@@ -1,4 +1,5 @@
 """Archive previous scene output before a regenerate run."""
+# 中文说明：开跑前备份已有 output/ 为日期 zip（排除旧 zip）。
 
 from __future__ import annotations
 
@@ -59,6 +60,7 @@ def backup_package(
     exclude: Optional[list[str]] = None,
     zip_name: Optional[str] = None,
 ) -> Path | None:
+    """功能：把目录打成备份 zip。"""
     if not package_dir.is_dir() or not any(package_dir.iterdir()):
         return None
     name = zip_name or f"{package_dir.name}{suffix}.zip"
@@ -94,7 +96,10 @@ def _output_has_content(output_dir: Path) -> bool:
 
 
 def backup_output_before_run(cfg: PipelineConfig, log: LogFn) -> Path | None:
-    """Zip current scene output/ (excluding *.zip) with a date stamp before overwrite."""
+    """Zip current scene output/ (excluding *.zip) with a date stamp before overwrite.
+
+功能：开跑前备份当前 output/。
+"""
     rt = cfg.runtime
     if not bool(rt.get("backup_output_before_run", False)):
         return None
@@ -132,7 +137,10 @@ def backup_output_before_run(cfg: PipelineConfig, log: LogFn) -> Path | None:
 
 
 def backup_previous_packages(cfg: PipelineConfig, log: LogFn) -> list[Path]:
-    """Zip other packages with the same id prefix (e.g. taibei_ue_*), excluding current scene_id."""
+    """Zip other packages with the same id prefix (e.g. taibei_ue_*), excluding current scene_id.
+
+功能：备份同级旧 Scene Package（旧布局）。
+"""
     rt = cfg.runtime
     if not bool(rt.get("backup_previous_packages", False)):
         return []

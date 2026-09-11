@@ -72,29 +72,68 @@ def test_resolve_extent_auto_containment_warn_on_partial(tmp_path: Path):
     assert "warnings" in payload
 
 
-def test_load_pipeline_config_examples():
-    from cityusd.pipeline.schema import load_pipeline_config
+def test_load_pipeline_config_scene():
+    from cityusd.pipeline.schema import load_scene_pipeline, load_step_config_ref
 
     root = Path(__file__).resolve().parents[1]
-    cfg = load_pipeline_config(root / "examples" / "taibei_ue.pipeline.yaml")
+    cfg = load_scene_pipeline("taibei_ue", project_root=root)
     assert cfg.schema_version == "0.3"
     assert cfg.scene_id == "taibei_ue"
     assert cfg.step("resolve_extent") is not None
     assert cfg.step("terrain") and cfg.step("terrain").enabled
     assert cfg.step("nav_pgm") and cfg.step("nav_pgm").enabled
+    assert cfg.step("osm_city_usd").config_ref == "osm_city_usd.json"
     assert cfg.package_dir() == cfg.usd_dir()
     assert "SceneData" in str(cfg.scene_root())
     assert cfg.usd_dir().name == "taibei_ue-USD"
     assert cfg.costmap_2d_dir().name == "2D"
     assert cfg.costmap_dir().name == "taibei_ue-CostMap"
+    osm_cfg = load_step_config_ref(cfg, cfg.step("osm_city_usd"), cfg.package_dir())
+    assert "build_layers" in osm_cfg
+
+
+def test_scene_config_overrides_default(tmp_path: Path):
+    from cityusd.pipeline.schema import load_pipeline_config, load_step_config_ref
+
+    root = Path(__file__).resolve().parents[1]
+    scene = tmp_path / "SceneData" / "override_demo"
+    cfg_dir = scene / "input" / "config"
+    cfg_dir.mkdir(parents=True)
+    (cfg_dir / "osm_city_usd.json").write_text(
+        '{"layers": {"vegetation": false, "lamps": false, "signs": false}}\n',
+        encoding="utf-8",
+    )
+    (cfg_dir / "pipeline.yaml").write_text(
+        "schema_version: '0.3'\n"
+        "extends: [default/pipeline.yaml]\n"
+        "scene:\n  id: override_demo\n"
+        "frame:\n  origin_wgs84: {longitude: 0, latitude: 0, height_m: 0}\n"
+        "  utm_epsg: 32651\n"
+        "inputs: {}\n",
+        encoding="utf-8",
+    )
+    import shutil
+
+    (tmp_path / "configs").mkdir()
+    shutil.copytree(root / "configs" / "default", tmp_path / "configs" / "default")
+    (tmp_path / "tools" / "cityusd").mkdir(parents=True)
+    cfg = load_pipeline_config(cfg_dir / "pipeline.yaml")
+    assert cfg.scene_id == "override_demo"
+    step = cfg.step("osm_city_usd")
+    assert step is not None
+    merged = load_step_config_ref(cfg, step, cfg.package_dir())
+    assert merged["layers"]["vegetation"] is False
+    assert merged["layers"]["lamps"] is False
+    assert merged["layers"]["buildings"] is True  # from default
+    assert "build_layers" in merged
 
 
 def test_runner_resolve_extent_only(tmp_path: Path):
     from cityusd.pipeline.runner import run_pipeline
-    from cityusd.pipeline.schema import load_pipeline_config
+    from cityusd.pipeline.schema import load_scene_pipeline
 
     root = Path(__file__).resolve().parents[1]
-    cfg = load_pipeline_config(root / "examples" / "taibei_ue.pipeline.yaml")
+    cfg = load_scene_pipeline("taibei_ue", project_root=root)
     cfg.output_dir = tmp_path
     cfg.scene_id = "test_extent_only"
     cfg.runtime["backup_output_before_run"] = False

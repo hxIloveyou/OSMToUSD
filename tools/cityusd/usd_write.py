@@ -1,3 +1,4 @@
+# 中文说明：USD 写出：mesh、材质、xform 等底层封装。
 from __future__ import annotations
 
 import math
@@ -56,6 +57,18 @@ def configure_stage(path: Path) -> Usd.Stage:
     return stage
 
 
+def _bind_material_path(stage, prim, material_path: str) -> None:
+    """Bind material by path; author target even if Looks live on a composing layer."""
+    if not material_path or prim is None or not prim.IsValid():
+        return
+    api = UsdShade.MaterialBindingAPI.Apply(prim)
+    mat = UsdShade.Material.Get(stage, material_path)
+    if mat and mat.GetPrim().IsValid():
+        api.Bind(mat)
+        return
+    api.GetDirectBindingRel().SetTargets([Sdf.Path(material_path)])
+
+
 def write_mesh(
     stage,
     path: str,
@@ -92,9 +105,7 @@ def write_mesh(
             [Gf.Vec3f(float(display_color[0]), float(display_color[1]), float(display_color[2]))]
         )
     if material_path:
-        mat = UsdShade.Material.Get(stage, material_path)
-        if mat and mat.GetPrim().IsValid():
-            UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(mat)
+        _bind_material_path(stage, mesh.GetPrim(), material_path)
     if subsets:
         for name, payload in subsets.items():
             face_ids, sub_mat = payload[0], payload[1]
@@ -106,9 +117,7 @@ def write_mesh(
                 familyName="materialBind",
             )
             if sub_mat:
-                smat = UsdShade.Material.Get(stage, sub_mat)
-                if smat and smat.GetPrim().IsValid():
-                    UsdShade.MaterialBindingAPI.Apply(subset.GetPrim()).Bind(smat)
+                _bind_material_path(stage, subset.GetPrim(), sub_mat)
 
 
 def write_point_instancer(
@@ -374,6 +383,20 @@ def save_layer_atomic(stage, dest: Path) -> Path:
     except OSError as exc:
         print(f"warning: could not replace {dest} ({exc}); left {ident}", flush=True)
         return ident
+
+
+def building_tile_filename(ix: int, iy: int, cell_size_m: float = 500.0) -> str:
+    """功能：建筑 tile 文件名（与 cell prim 索引一致）。"""
+    cs = int(round(float(cell_size_m)))
+    return f"buildings_c{cs}_{_cell_token(ix)}_{_cell_token(iy)}.usdc"
+
+
+def add_payload(prim, asset_path: str, prim_path: str) -> None:
+    """功能：在 prim 上挂 payload（延迟加载）。"""
+    if prim is None or not prim.IsValid():
+        return
+    payload = Sdf.Payload(assetPath=str(asset_path).replace("\\", "/"), primPath=Sdf.Path(prim_path))
+    prim.GetPayloads().AddPayload(payload)
 
 
 BUILDING_MATERIAL_PATH = "/World/Looks/Building"

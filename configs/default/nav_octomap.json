@@ -1,0 +1,31 @@
+// nav_octomap step — OSM+DEM → OctoMap 3D（写入 {scene_id}-CostMap/3D/）
+{
+  // 体素分辨率（米）；1.0 全城极重，默认 4.0
+  "resolution_m": 4.0,
+
+  // 输出文件名前缀（默认 scene_id）→ {out_prefix}.bt / {out_prefix}_meta.json
+  // "out_prefix": null,
+
+  // origin：
+  //   "scene" = 与 CityUsd frame 原点对齐（UTM，推荐，便于与 USD/2D 对照）
+  //   "auto" 或 null = 由 octomap 按数据范围自动取 SW
+  //   [UTM_x, UTM_y, z] = 显式原点
+  "origin": "scene",
+
+  // true：用 resolve_extent 的 WGS84 框作为 bbox；false 且 bbox=null 则全城
+  "clip_to_extent": true,
+
+  // 可选显式 bbox：[lonmin, latmin, lonmax, latmax]；优先于 clip_to_extent
+  "bbox": null,
+
+  // DEM：input = 场景 inputs.dem；或相对 USD 包的路径如 terrain/dem_utm.tif
+  "dem_source": "input",
+
+  // 建筑高度链（与上游 OctoMap3D 一致）
+  "height": {
+    "floor_height_m": 3.0,       // building:levels × 该值
+    "default_height_m": 10.0,    // 无高度信息时的默认楼高
+    "min_height_m": 1.0,
+    "max_height_m": 600.0
+  }
+}

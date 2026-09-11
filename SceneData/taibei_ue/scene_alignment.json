@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "scene_id": "taibei_ue",
+  "crs": {
+    "epsg": 32651
+  },
+  "center_wgs84": {
+    "lon": 121.532933,
+    "lat": 25.047453,
+    "height_m": 0.0
+  },
+  "extent_m": {
+    "west": -6105.108607805858,
+    "south": -5304.339652587194,
+    "east": 6106.641446190712,
+    "north": 5332.373936521821,
+    "width": 12211.75005399657,
+    "height": 10636.713589109015
+  },
+  "resolution": {
+    "meters_per_unit_usd": 0.01,
+    "nav_resolution_m": 1.0
+  },
+  "paths": {
+    "usd": "./output/taibei_ue-USD",
+    "costmap_2d": "./output/taibei_ue-CostMap/2D",
+    "costmap_3d": "./output/taibei_ue-CostMap/3D"
+  },
+  "units": {
+    "meters_per_unit_usd": 0.01,
+    "up_axis": "Z"
+  }
+}

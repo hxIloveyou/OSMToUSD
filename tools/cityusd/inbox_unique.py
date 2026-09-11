@@ -3,6 +3,7 @@
 These are meant to be applied as one sheet or a decal, not tiled like a 2-window
 ambientCG facade. Not wired into USD generation.
 """
+# 中文说明：inbox 整楼贴图/招牌/门窗细节（非整砖平铺；未接入 USD）。
 
 from __future__ import annotations
 

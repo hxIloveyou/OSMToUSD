@@ -1,4 +1,5 @@
 """Bind AssetLibrary inbox facades/roofs into OSM building bands."""
+# 中文说明：将 inbox 立面/屋顶绑定到 OSM 建筑立面 band。
 
 from __future__ import annotations
 
@@ -125,7 +126,7 @@ def resolve_asset_library_root(
     assets_dir: Path | None = None,
     data_dir: Path | None = None,
 ) -> Path | None:
-    """Find AssetLibrary root containing materials/buildings/inbox."""
+    """Find AssetLibrary root (buildings inbox and/or materials/roads)."""
     candidates: list[Path] = []
     if assets_dir is not None:
         candidates.append(Path(assets_dir))
@@ -139,7 +140,7 @@ def resolve_asset_library_root(
     if default not in candidates:
         candidates.append(default)
     for root in candidates:
-        if (root / INBOX_REL).is_dir():
+        if (root / INBOX_REL).is_dir() or (root / "materials" / "roads").is_dir():
             return root
     return None
 

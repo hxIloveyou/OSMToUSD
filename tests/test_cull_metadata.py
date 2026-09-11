@@ -30,13 +30,10 @@ def test_building_cell_writes_cull_custom_data(tmp_path: Path):
         (0.7, 0.6, 0.5),
         {"Walls": ([0], "/World/Looks/Facade_mid_0"), "Roof": ([], "/World/Looks/Roof_0")},
     )
-    write_building_cell(stage, 0, 0, {"LOD0": payload}, suffix="mid_0")
+    write_building_cell(stage, 0, 0, {"LOD0": payload}, suffix="mid_0", cell_size_m=500.0)
     stage.GetRootLayer().Save()
     opened = Usd.Stage.Open(str(path))
-    mesh = opened.GetPrimAtPath("/World/City/Buildings/c400_0_0_mid_0/LOD0")
-    # cs==400 uses c400_ prefix; ix=iy=0
-    if not mesh.IsValid():
-        mesh = opened.GetPrimAtPath("/World/City/Buildings/c0_0_mid_0/LOD0")
+    mesh = opened.GetPrimAtPath("/World/City/Buildings/c500_0_0_mid_0/LOD0")
     assert mesh.IsValid()
     cd = mesh.GetCustomData()
     assert float(cd.get("cull_distance_m") or 0) == float(CULL_BUILDING_M)

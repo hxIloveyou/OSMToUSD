@@ -1,4 +1,5 @@
 """Download CC0 facade/roof candidates into AssetLibrary inbox. Does not rebuild USD."""
+# 中文说明：下载或整理 AssetLibrary inbox 材质候选；--rehome 仅重排已有文件。
 
 from __future__ import annotations
 
@@ -10,11 +11,15 @@ from cityusd.inbox_assets import dest_path, ensure_inbox, rehome_inbox, write_ma
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Download or rehome inbox assets and write manifest.
+
+    功能：下载或重排 inbox 资产并写 manifest。
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--library",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "data" / "assets" / "AssetLibrary",
+        default=Path(__file__).resolve().parents[1] / "tools" / "assets" / "AssetLibrary",
         help="AssetLibrary root (workspace copy)",
     )
     parser.add_argument(

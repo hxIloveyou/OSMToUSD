@@ -1,3 +1,4 @@
+# 中文说明：osm_labels 步骤：OSM 属性按网格分片写入 catalog（默认不进 World）。
 from __future__ import annotations
 
 import json
@@ -100,6 +101,7 @@ def extract_features(osm: OsmData, extent: ExtentM, cell_size_m: float) -> dict[
 
 
 def run_osm_labels(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]:
+    """功能：写出 OSM 属性分片 catalog。"""
     step = cfg.step("osm_labels")
     if step is None:
         raise RuntimeError("osm_labels step missing from pipeline")

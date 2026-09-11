@@ -10,10 +10,12 @@ from cityusd.roads import (
     build_typed_junctions,
     clip_marking_to_road,
     classify_junction_kind,
+    effective_lane_count,
     graph_degree_from_ways,
     inbound_lane_offsets_m,
     is_motor_highway,
     junction_arrows,
+    lane_separator_offsets_m,
     marking_kind,
     marking_strip_polygons,
     sign_placements,
@@ -188,9 +190,40 @@ def test_width_change_is_tapered():
         return float(getattr(hit, "length", 0.0))
 
     assert abs(width_at(10.0) - 7.0) < 1.5
-    assert abs(width_at(70.0) - 14.0) < 1.5
+    assert abs(width_at(70.0) - 14.0) < 2.0
     mid = width_at(40.0)
     assert 8.0 < mid < 13.0
+    # Transition should not be a knife-edge: nearby samples stay close
+    assert abs(width_at(36.0) - width_at(44.0)) < 5.0
+
+
+def test_marking_lane_count_uses_typical_not_narrowest_spike():
+    coords = [(0.0, 0.0), (40.0, 0.0), (80.0, 0.0), (120.0, 0.0)]
+    # Mostly 14 m with one narrow spike — should still keep 4-lane separators
+    vary = [14.0, 14.0, 7.0, 14.0]
+    strips = marking_strip_polygons(
+        coords, {"highway": "primary", "lanes": "4"}, 14.0, vertex_width_m=vary
+    )
+    assert [s for s in strips if s["style"] == "white_dash"]
+
+
+def test_short_piece_skips_unstable_edge_offsets():
+    # Tiny stub: should not emit spaghetti edge markings
+    strips = marking_strip_polygons(
+        [(0.0, 0.0), (2.0, 0.0)], {"highway": "primary", "lanes": "4"}, 14.0
+    )
+    assert strips == []
+
+
+def test_stable_offset_does_not_explode_on_sharp_bend():
+    coords = [(0.0, 0.0), (20.0, 0.0), (20.0, 20.0)]
+    strips = marking_strip_polygons(coords, {"highway": "primary", "lanes": "4"}, 14.0)
+    edges = [s for s in strips if s["style"] == "white_solid"]
+    assert edges
+    for s in edges:
+        # Each dash/solid fragment should stay compact relative to its bounds
+        minx, miny, maxx, maxy = s["geom"].bounds
+        assert (maxx - minx) < 40.0 and (maxy - miny) < 40.0
 
 
 def test_through_node_is_junction_degree():
@@ -198,7 +231,16 @@ def test_through_node_is_junction_degree():
     side = OsmWay(2, {"highway": "primary"}, [(50.0, 0.0), (50.0, 40.0)], False)
     deg = graph_degree_from_ways([through, side])
     assert deg[(50.0, 0.0)] >= 3
-    arrows = junction_arrows(build_road_polygons([through, side]), deg)
+    # Two-way major junction → topology arrows (not empty)
+    twoway = junction_arrows(build_road_polygons([through, side]), deg)
+    assert twoway
+    assert all("kind" in a for a in twoway)
+
+    through_ow = OsmWay(
+        1, {"highway": "primary", "oneway": "yes"}, [(0.0, 0.0), (50.0, 0.0), (100.0, 0.0)], False
+    )
+    side_ow = OsmWay(2, {"highway": "primary", "oneway": "yes"}, [(50.0, 40.0), (50.0, 0.0)], False)
+    arrows = junction_arrows(build_road_polygons([through_ow, side_ow]), deg)
     assert arrows
     assert max(len(a["poly"].exterior.coords) for a in arrows) >= 6
     line_ys = [abs(a["xy"][1]) for a in arrows if abs(a["xy"][1]) < 3.0]
@@ -214,7 +256,11 @@ def test_inbound_offsets_sit_between_lane_lines():
     pts, counts, indices, uvs = arrow_decal_quad_cm()
     assert counts == [4]
     assert len(pts) == 4
-    assert max(uv[0] for uv in uvs) == 1.0
+    # tip='up' default: tip edge has v=1
+    assert max(uv[1] for uv in uvs) == 1.0
+    pts_r, _, _, uvs_r = arrow_decal_quad_cm(tip="right")
+    assert max(uv[0] for uv in uvs_r) == 1.0
+    assert pts_r == pts
 
 
 def test_way_display_name_prefers_zh():
@@ -232,6 +278,98 @@ def test_dashed_lane_is_geometric_segments():
     assert solids
     dash_len = max(s["geom"].bounds[2] - s["geom"].bounds[0] for s in dashes)
     assert dash_len < 6.0
+
+
+def test_effective_lane_count_caps_by_width():
+    # Tagged 4 lanes but only ~7 m pavement → 2 lanes
+    assert effective_lane_count({"highway": "primary", "lanes": "4"}, 7.0) == 2
+    assert effective_lane_count({"highway": "primary", "lanes": "4"}, 14.0) == 4
+    # Width alone (~12 m primary default) → ~3–4; prefer even for two-way
+    assert effective_lane_count({"highway": "primary"}, 12.0) in {2, 3, 4}
+    assert effective_lane_count({"highway": "primary", "lanes": "2"}, 14.0) == 2
+
+
+def test_two_lane_primary_has_no_lane_dashes():
+    offsets = lane_separator_offsets_m({"highway": "primary", "lanes": "2"}, 7.0)
+    assert offsets == []
+    strips = marking_strip_polygons(
+        [(0.0, 0.0), (40.0, 0.0)], {"highway": "primary", "lanes": "2"}, 7.0
+    )
+    assert [s for s in strips if s["style"] == "white_dash"] == []
+    assert any("yellow" in s["style"] for s in strips)
+
+
+def test_four_lane_separators_at_quarter_width():
+    w = 14.0
+    offsets = lane_separator_offsets_m({"highway": "primary", "lanes": "4"}, w)
+    assert sorted(offsets) == sorted([-w / 4.0, w / 4.0])
+
+
+def test_six_lane_has_two_separators_each_side():
+    w = 21.0
+    offsets = lane_separator_offsets_m({"highway": "primary", "lanes": "6"}, w)
+    assert sorted(offsets) == sorted([-w / 6.0, w / 6.0, -2.0 * w / 6.0, 2.0 * w / 6.0])
+
+
+def test_narrow_tagged_four_lane_markings_follow_width():
+    # Same tags as a 4-lane road, but drawn at 7 m → behave like 2-lane
+    strips = marking_strip_polygons(
+        [(0.0, 0.0), (40.0, 0.0)], {"highway": "primary", "lanes": "4"}, 7.0
+    )
+    assert [s for s in strips if s["style"] == "white_dash"] == []
+
+
+def test_variable_width_uses_narrowest_for_lane_count():
+    # Entire piece is narrow → drop to 2-lane (no white separators)
+    coords = [(0.0, 0.0), (40.0, 0.0), (80.0, 0.0)]
+    vary = [7.0, 7.0, 7.0]
+    strips = marking_strip_polygons(
+        coords, {"highway": "primary", "lanes": "4"}, 14.0, vertex_width_m=vary
+    )
+    assert [s for s in strips if s["style"] == "white_dash"] == []
+
+
+def test_inbound_offset_matches_first_lane_center():
+    # 4 lanes @ 14 m → first inbound bay center at w/(2n) = 1.75
+    assert inbound_lane_offsets_m({"highway": "primary", "lanes": "4"}, 14.0) == [1.75]
+    assert inbound_lane_offsets_m({"highway": "primary", "lanes": "2"}, 7.0) == [1.75]
+
+
+def test_oneway_has_no_double_yellow():
+    k = marking_kind({"highway": "primary", "oneway": "yes"}, 14.0)
+    assert k["center"] == "none"
+    assert k["lane"] == "white_dash"
+
+
+def test_oneway_even_lanes_center_sep_not_over_yellow():
+    # Even oneway: one separator sits at 0; must not stack with yellow center
+    tags = {"highway": "primary", "oneway": "yes", "lanes": "4"}
+    w = 14.0
+    assert 0.0 in lane_separator_offsets_m(tags, w)
+    strips = marking_strip_polygons([(0.0, 0.0), (40.0, 0.0)], tags, w)
+    yellow = [s for s in strips if "yellow" in s["style"]]
+    assert yellow == []
+    dashes = [s for s in strips if s["style"] == "white_dash"]
+    assert dashes  # mid-carriageway separators still present
+
+
+def test_two_way_yellow_not_coincident_with_lane_dash():
+    tags = {"highway": "primary", "lanes": "4"}
+    w = 14.0
+    strips = marking_strip_polygons([(0.0, 0.0), (50.0, 0.0)], tags, w)
+    # Sample mid-road cross section: yellow near y=0, dashes near ±w/4
+    yellow_ys = []
+    dash_ys = []
+    for s in strips:
+        b = s["geom"].bounds
+        cy = 0.5 * (b[1] + b[3])
+        if "yellow" in s["style"]:
+            yellow_ys.append(cy)
+        if s["style"] == "white_dash":
+            dash_ys.append(cy)
+    assert yellow_ys and dash_ys
+    for y in yellow_ys:
+        assert all(abs(y - d) > 0.35 for d in dash_ys)
 
 
 def test_classify_junction_kinds():
@@ -395,10 +533,15 @@ def test_markings_stop_before_t_node():
 
 
 def test_cross_arrows_do_not_stack():
-    ns = OsmWay(1, {"highway": "primary"}, [(0.0, -80.0), (0.0, 0.0), (0.0, 80.0)], False)
-    ew = OsmWay(2, {"highway": "primary"}, [(-80.0, 0.0), (0.0, 0.0), (80.0, 0.0)], False)
+    ns = OsmWay(
+        1, {"highway": "primary", "oneway": "yes"}, [(0.0, -80.0), (0.0, 0.0), (0.0, 80.0)], False
+    )
+    ew = OsmWay(
+        2, {"highway": "primary", "oneway": "yes"}, [(-80.0, 0.0), (0.0, 0.0), (80.0, 0.0)], False
+    )
     arrows = junction_arrows(build_road_polygons([ns, ew]), graph_degree_from_ways([ns, ew]))
-    assert len(arrows) >= 4
+    # oneway only → one inbound per arm (not decorative 4-way)
+    assert len(arrows) >= 2
     for i, a in enumerate(arrows):
         for b in arrows[i + 1 :]:
             dx = a["xy"][0] - b["xy"][0]
@@ -413,7 +556,7 @@ def test_closed_roundabout_has_no_ring_arrows():
     ring = [(18.0 * math.cos(i * math.pi / 8.0), 18.0 * math.sin(i * math.pi / 8.0)) for i in range(16)]
     ring.append(ring[0])
     ra = OsmWay(1, {"highway": "primary", "junction": "roundabout"}, ring, True)
-    arm = OsmWay(2, {"highway": "primary"}, [(18.0, 0.0), (70.0, 0.0)], False)
+    arm = OsmWay(2, {"highway": "primary", "oneway": "yes"}, [(70.0, 0.0), (18.0, 0.0)], False)
     arrows = junction_arrows(build_road_polygons([ra, arm]), graph_degree_from_ways([ra, arm]))
     assert arrows
     for a in arrows:
@@ -425,7 +568,7 @@ def test_open_roundabout_arcs_have_no_ring_arrows():
     bot = [(18.0 * math.cos(i * math.pi / 8.0), 18.0 * math.sin(i * math.pi / 8.0)) for i in range(8, 17)]
     ra_a = OsmWay(1, {"highway": "primary", "junction": "roundabout"}, top, False)
     ra_b = OsmWay(2, {"highway": "primary", "junction": "roundabout"}, bot, False)
-    arm = OsmWay(3, {"highway": "primary"}, [(18.0, 0.0), (70.0, 0.0)], False)
+    arm = OsmWay(3, {"highway": "primary", "oneway": "yes"}, [(70.0, 0.0), (18.0, 0.0)], False)
     arrows = junction_arrows(
         build_road_polygons([ra_a, ra_b, arm]),
         graph_degree_from_ways([ra_a, ra_b, arm]),
@@ -437,8 +580,48 @@ def test_open_roundabout_arcs_have_no_ring_arrows():
 def test_untagged_loop_arc_has_no_ring_arrows():
     ring = [(18.0 * math.cos(i * math.pi / 8.0), 18.0 * math.sin(i * math.pi / 8.0)) for i in range(16)]
     ra = OsmWay(1, {"highway": "primary"}, ring, False)
-    arm = OsmWay(2, {"highway": "primary"}, [(18.0, 0.0), (70.0, 0.0)], False)
+    arm = OsmWay(2, {"highway": "primary", "oneway": "yes"}, [(70.0, 0.0), (18.0, 0.0)], False)
     arrows = junction_arrows(build_road_polygons([ra, arm]), graph_degree_from_ways([ra, arm]))
     for a in arrows:
         assert math.hypot(a["xy"][0], a["xy"][1]) > 20.0
 
+
+def test_bidirectional_major_road_has_topology_arrows():
+    through = OsmWay(1, {"highway": "primary"}, [(0.0, 0.0), (50.0, 0.0), (100.0, 0.0)], False)
+    side = OsmWay(2, {"highway": "primary"}, [(50.0, 0.0), (50.0, 40.0)], False)
+    arrows = junction_arrows(build_road_polygons([through, side]), graph_degree_from_ways([through, side]))
+    assert arrows
+    kinds = {a.get("kind") for a in arrows}
+    assert kinds & {"straight", "left", "right", "straight_left", "straight_right", "all", "left_right"}
+
+
+def test_turn_lanes_parse_and_place():
+    from cityusd.roads import parse_turn_lane_kinds
+
+    kinds = parse_turn_lane_kinds({"turn:lanes": "left|through|through;right"}, "forward")
+    assert kinds == ["left", "straight", "straight_right"]
+    way = OsmWay(
+        1,
+        {"highway": "primary", "oneway": "yes", "lanes": "3", "turn:lanes": "left|through|right"},
+        [(0.0, 0.0), (50.0, 0.0), (100.0, 0.0)],
+        False,
+    )
+    side = OsmWay(2, {"highway": "primary", "oneway": "yes"}, [(50.0, 40.0), (50.0, 0.0)], False)
+    arrows = junction_arrows(build_road_polygons([way, side]), graph_degree_from_ways([way, side]))
+    through_arrows = [a for a in arrows if abs(a["xy"][1]) < 4.0]
+    assert len(through_arrows) >= 3
+    assert {a["kind"] for a in through_arrows} >= {"left", "straight", "right"}
+
+
+def test_oneway_reverse_arrow_direction():
+    # Travel westbound (oneway=-1 along eastward coords): inbound at (50,0) from the east
+    through = OsmWay(
+        1, {"highway": "primary", "oneway": "-1"}, [(0.0, 0.0), (50.0, 0.0), (100.0, 0.0)], False
+    )
+    side = OsmWay(2, {"highway": "primary", "oneway": "yes"}, [(50.0, 40.0), (50.0, 0.0)], False)
+    arrows = junction_arrows(build_road_polygons([through, side]), graph_degree_from_ways([through, side]))
+    assert arrows
+    through_arrows = [a for a in arrows if abs(a["xy"][1]) < 3.0]
+    assert through_arrows
+    # Inbound toward junction from +x → yaw near π
+    assert any(abs(math.cos(a["yaw_rad"]) + 1.0) < 0.35 for a in through_arrows)

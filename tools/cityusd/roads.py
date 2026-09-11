@@ -1,3 +1,4 @@
+# 中文说明：道路中心线缓冲、车行道多边形、宽度推断。
 from __future__ import annotations
 
 import math
@@ -30,7 +31,10 @@ ROAD_WIDTH_SCALE = 1.0
 
 
 def set_road_width_scale(scale: float) -> float:
-    """Set global road width scale; returns previous value."""
+    """Set global road width scale; returns previous value.
+
+功能：设置全局道路宽度倍率，返回旧值。
+"""
     global ROAD_WIDTH_SCALE
     prev = float(ROAD_WIDTH_SCALE)
     ROAD_WIDTH_SCALE = max(0.01, float(scale))
@@ -67,6 +71,7 @@ _WIDTH_RE = re.compile(r"^\s*([\d.]+)\s*(?:m|meters?)?\s*$", re.IGNORECASE)
 
 MARKING_BUFFER_M = 0.08
 MARKING_Z_M = LAYER_Z_M["roads"] + 0.01
+MIN_MARKING_PIECE_M = 6.0
 DOUBLE_YELLOW_SEP_M = 0.18
 ARROW_LENGTH_M = 5.0
 ARROW_WIDTH_M = 1.15
@@ -87,8 +92,12 @@ _OPPOSITE_TOL = 0.52  # ~30°
 BRIDGE_DECK_M = 5.5
 
 
-def arrow_decal_quad_cm():
-    """Flat XY quad, tip toward +X. Texture UV: u=1 at the tip. No volume, no collision mesh."""
+def arrow_decal_quad_cm(tip: str = "up"):
+    """Flat XY quad, tip toward +X in local space.
+
+    tip='up': texture tip at image top (AssetLibrary RoadMarkings).
+    tip='right': texture tip at image right (procedural arrow_decal).
+    """
     half_l = ARROW_LENGTH_M * 0.5 * CM_PER_M
     half_w = ARROW_WIDTH_M * 0.5 * CM_PER_M
     pts = [
@@ -97,7 +106,11 @@ def arrow_decal_quad_cm():
         (-half_l, -half_w, 0.0),
         (-half_l, half_w, 0.0),
     ]
-    uvs = [(1.0, 1.0), (1.0, 0.0), (0.0, 0.0), (0.0, 1.0)]
+    if tip == "right":
+        uvs = [(1.0, 1.0), (1.0, 0.0), (0.0, 0.0), (0.0, 1.0)]
+    else:
+        # tip (+X) → high V (top of image)
+        uvs = [(1.0, 1.0), (0.0, 1.0), (0.0, 0.0), (1.0, 0.0)]
     return pts, [4], [0, 1, 2, 3], uvs
 
 
@@ -110,10 +123,12 @@ def lane_count(tags: dict[str, str], width_m: Optional[float] = None) -> int:
             return max(1, int(round(parsed)))
     if width_m is None:
         width_m = way_width_m(tags)
-    approx = max(2, int(round(float(width_m) / 3.5)))
-    oneway = (tags.get("oneway") or "").strip().lower() in {"yes", "true", "1"}
-    if oneway or approx % 2 == 0:
-        return approx
+    approx = max(1, int(round(float(width_m) / 3.5)))
+    travel = oneway_travel_sign(tags)
+    if travel != 0 or approx % 2 == 0:
+        return max(1, approx)
+    if approx < 2:
+        return 1
     lo, hi = approx - 1, approx + 1
     lo = max(2, lo)
     err_lo = abs(float(width_m) / lo - 3.5)
@@ -121,20 +136,68 @@ def lane_count(tags: dict[str, str], width_m: Optional[float] = None) -> int:
     return lo if err_lo <= err_hi else hi
 
 
-def inbound_lane_offsets_m(tags: dict[str, str], width_m: float) -> list[float]:
-    """First inbound lane center, using the same layout as painted markings.
+def effective_lane_count(tags: dict[str, str], width_m: float) -> int:
+    """功能：标线用车道数；有 lanes 时仍受路面宽度约束（约 3.5 m/车道），避免窄路仍画多车道。"""
+    w = max(0.1, float(width_m))
+    by_width = max(1, int(round(w / 3.5)))
+    raw_lanes = tags.get("lanes")
+    if raw_lanes is not None:
+        parsed = _parse_float(str(raw_lanes).split(";")[0].split("|")[0])
+        if parsed is not None:
+            tagged = max(1, int(round(parsed)))
+            # 不发明比标注更多的车道；窄于标注时按宽度降级
+            return max(1, min(tagged, by_width))
+    return lane_count(tags, w)
 
-    Lane dashes are drawn at ±width/4. The arrow belongs in the bay between the
-    centerline and that dash (width/8), never on the dash (width/4).
+
+def lane_separator_offsets_m(tags: dict[str, str], width_m: float) -> list[float]:
+    """功能：白虚线车道分隔线相对中心线的横向偏移（米，有符号）。"""
+    w = float(width_m)
+    if w <= 0:
+        return []
+    n = effective_lane_count(tags, w)
+    if n < 2:
+        return []
+    travel = oneway_travel_sign(tags)
+    if travel != 0:
+        # 单向：所有相邻车道之间
+        return [w * (k / n - 0.5) for k in range(1, n)]
+    # 双向：中心线已是对向分隔，只画同向车道之间
+    half = n // 2
+    if half < 2:
+        return []
+    out: list[float] = []
+    for k in range(1, half):
+        out.append(k * (w / n))
+        out.append(-k * (w / n))
+    return out
+
+
+def oneway_travel_sign(tags: dict[str, str]) -> int:
+    """功能：解析 OSM oneway：+1 沿 way 正向，-1 反向，0=双向/未知（不画确定性箭头）。"""
+    raw = (tags.get("oneway") or "").strip().lower()
+    if raw in {"yes", "true", "1"}:
+        return 1
+    if raw in {"-1", "reverse"}:
+        return -1
+    return 0
+
+
+def inbound_lane_offsets_m(tags: dict[str, str], width_m: float) -> list[float]:
+    """First inbound lane center (same layout as painted lane bays).
+
+    Lane separators sit at k*w/n; the first inbound bay center is at w/(2n).
     """
     w = float(width_m)
+    n = effective_lane_count(tags, w)
     kind = marking_kind(tags, w)
-    if kind.get("lane") == "white_dash":
-        return [0.125 * w]
+    if kind.get("lane") == "white_dash" or n >= 2:
+        return [w / (2.0 * max(n, 1))]
     return [0.25 * w]
 
 
 def way_width_m(tags: dict[str, str]) -> float:
+    """功能：由 OSM tags 推断道路宽度（米）。"""
     raw_width = tags.get("width")
     if raw_width is not None:
         match = _WIDTH_RE.match(str(raw_width).strip())
@@ -163,7 +226,10 @@ def motor_carriageway_polygons(
     cap_style: str = "round",
     join_style: str = "round",
 ) -> list:
-    """Simple half-width buffers of motor highways. No pavement hierarchy cut."""
+    """Simple half-width buffers of motor highways. No pavement hierarchy cut.
+
+功能：生成机动车道车行道多边形（缓冲）。
+"""
     polys: list = []
     for way in ways or []:
         tags = getattr(way, "tags", None) or {}
@@ -358,6 +424,7 @@ def _assemble_chain(group: list[OsmWay]) -> OsmWay | None:
         current = _node_key(ordered[-1])
     if unused or len(ordered) < 2 or len(ordered_w) != len(ordered):
         return None
+    ordered_w = _ramp_width_jumps(ordered, ordered_w, taper_m=18.0)
     longest = max(group, key=lambda w: max(0.0, LineString(w.coords_m).length if w.coords_m else 0.0))
     closed = len(ordered) >= 4 and _node_key(ordered[0]) == _node_key(ordered[-1])
     return OsmWay(
@@ -367,6 +434,36 @@ def _assemble_chain(group: list[OsmWay]) -> OsmWay | None:
         closed=closed,
         vertex_width_m=ordered_w,
     )
+
+
+def _ramp_width_jumps(coords, widths: list[float], taper_m: float = 28.0) -> list[float]:
+    """功能：把链合并处的宽度阶跃摊到两侧若干米，避免刀切式变窄。"""
+    if not coords or not widths or len(coords) != len(widths) or len(coords) < 2:
+        return list(widths or [])
+    w = [float(x) for x in widths]
+    n = len(w)
+    stations = [0.0]
+    for i in range(1, n):
+        stations.append(
+            stations[-1]
+            + math.hypot(float(coords[i][0]) - float(coords[i - 1][0]), float(coords[i][1]) - float(coords[i - 1][1]))
+        )
+    jumps = [i for i in range(1, n) if abs(w[i] - w[i - 1]) >= 0.5]
+    if not jumps:
+        return w
+    out = list(w)
+    half = max(4.0, float(taper_m))
+    for i in jumps:
+        w0, w1 = float(w[i - 1]), float(w[i])
+        # 宽度从「旧顶点」进入新段，关节在 stations[i-1]，而不是新段末端
+        s_joint = stations[i - 1]
+        for j in range(n):
+            if stations[j] < s_joint - half or stations[j] > s_joint + half:
+                continue
+            t = (stations[j] - (s_joint - half)) / (2.0 * half)
+            t = max(0.0, min(1.0, t))
+            out[j] = w0 * (1.0 - t) + w1 * t
+    return out
 
 
 def _highest_rank_bend_pair(ways: list[OsmWay], uniq: list[int]) -> tuple[int, int] | None:
@@ -594,6 +691,7 @@ def _step_along(stations: list[float], values: list[float], d: float) -> float:
 
 
 def _densify_width_blend(coords, widths: list[float], step_m: float = 2.0):
+    """Densify centerline and lerp width so lane changes taper instead of stepping."""
     if coords is None or len(coords) < 2:
         return list(coords or []), list(widths or [])
     if len(widths) != len(coords):
@@ -603,6 +701,8 @@ def _densify_width_blend(coords, widths: list[float], step_m: float = 2.0):
         delta = max(delta, abs(float(widths[i]) - float(widths[i - 1])))
     if delta <= 0.2:
         return [(float(p[0]), float(p[1])) for p in coords], [float(w) for w in widths]
+    # 大宽度差用更密采样，便于后续平滑
+    step = min(float(step_m), max(0.75, 8.0 / max(delta, 1.0)))
     xy: list[tuple[float, float]] = [(float(coords[0][0]), float(coords[0][1]))]
     ww: list[float] = [float(widths[0])]
     for i in range(len(coords) - 1):
@@ -612,14 +712,18 @@ def _densify_width_blend(coords, widths: list[float], step_m: float = 2.0):
         dist = math.hypot(x1 - x0, y1 - y0)
         if dist < 1e-4:
             continue
-        n = max(1, int(math.ceil(dist / step_m)))
+        # 宽度突变时强制至少跨这么长距离插值（米）
+        taper_m = max(dist, min(60.0, 4.0 * abs(w1 - w0))) if abs(w1 - w0) > 0.2 else dist
+        n = max(1, int(math.ceil(max(dist, taper_m) / step)))
+        # 若线段本身短于理想过渡，仍在线段内线性插值（避免阶跃）
         for k in range(1, n + 1):
             t = k / float(n)
             xy.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t))
-            ww.append(w1 if abs(w1 - w0) > 0.2 else w0)
+            ww.append(w0 * (1.0 - t) + w1 * t)
     if len(ww) < 3:
         return xy, ww
-    radius = max(2, int(min(20.0, max(10.0, 2.0 * delta)) / step_m))
+    # 轻量平滑即可；过重会把两侧目标宽度拖脏
+    radius = max(1, int(min(6.0, max(2.0, 0.6 * delta)) / step))
     smooth = []
     n = len(ww)
     for i in range(n):
@@ -643,7 +747,7 @@ def build_road_polygons(ways: list[OsmWay]) -> list[tuple[OsmWay, object]]:
         coords = _fillet_polyline(way.coords_m, min(16.0, max(4.0, max_w * 0.9)))
         if len(coords) < 2:
             continue
-        widths = _remap_widths(way.coords_m, raw_w, coords, stepwise=True)
+        widths = _remap_widths(way.coords_m, raw_w, coords, stepwise=False)
         coords, widths = _densify_width_blend(coords, widths)
         line = LineString(coords)
         if line.is_empty or line.length == 0:
@@ -1099,7 +1203,7 @@ def _cut_line_windows(line, windows: list[tuple[float, float]]):
             merged[-1][1] = max(merged[-1][1], b)
     out = []
     pos = 0.0
-    min_keep = 1.0
+    min_keep = MIN_MARKING_PIECE_M
     for a, b in merged:
         if a - pos >= min_keep:
             piece = substring(line, pos, a)
@@ -1197,18 +1301,30 @@ def point_in_disks(xy, disks: list, tree=None) -> bool:
 
 
 def marking_kind(tags: dict[str, str], width_m: float) -> dict:
-    """Return {center, lane, edge} per spec table."""
+    """Return {center, lane, edge} per spec table.
+
+    Oneway roads do not get opposing-traffic yellow center (avoids stacking a
+    mid-carriageway white separator on top of double yellow).
+    """
     hwy = tags.get("highway", "")
+    oneway = oneway_travel_sign(tags) != 0
     if hwy in ("motorway", "trunk", "primary"):
+        if oneway:
+            return {"center": "none", "lane": "white_dash", "edge": "white_solid"}
         return {
             "center": "double_yellow_solid",
             "lane": "white_dash",
             "edge": "white_solid",
         }
     if hwy == "secondary":
+        if oneway:
+            return {"center": "none", "lane": "white_dash", "edge": "white_solid"}
         center = "double_yellow_solid" if width_m >= 9 else "single_yellow_solid"
         return {"center": center, "lane": "white_dash", "edge": "white_solid"}
     if hwy == "tertiary":
+        if oneway:
+            lane = "white_dash" if width_m >= 8 else "none"
+            return {"center": "none", "lane": lane, "edge": "none"}
         lane = "white_dash" if width_m >= 8 else "none"
         return {"center": "single_yellow_dash", "lane": lane, "edge": "none"}
     if hwy == "residential":
@@ -1259,44 +1375,112 @@ def widths_along_piece(way: OsmWay, piece) -> list | None:
     return _remap_widths(way.coords_m, vw, piece)
 
 
+def _typical_width_m(width_m: float, vertex_width_m=None) -> float:
+    """功能：标线车道数用的代表性宽度（中位数，避免单点窄尖把整段标线清掉）。"""
+    if vertex_width_m is not None and len(vertex_width_m) > 0:
+        vals = sorted(float(v) for v in vertex_width_m if v is not None)
+        if vals:
+            return max(0.1, float(vals[len(vals) // 2]))
+    return max(0.1, float(width_m))
+
+
+def _stable_side_offset(coords, offset_m: float):
+    """功能：用法线偏移代替 parallel_offset，急弯更稳。"""
+    if coords is None or len(coords) < 2:
+        return None
+    d = float(offset_m)
+    widths = [max(0.2, 2.0 * abs(d))] * len(coords)
+    frac = 0.5 if d >= 0 else -0.5
+    return _offset_line_variable(coords, widths, frac)
+
+
+def _sanitize_marking_line(line, ref_length: float):
+    """功能：丢掉偏移产生的回折/过长碎片。"""
+    if line is None or getattr(line, "is_empty", True):
+        return None
+    parts = list(_iter_lines(line))
+    if not parts:
+        return None
+    ref = max(1.0, float(ref_length))
+    kept = []
+    for part in parts:
+        try:
+            ln = float(part.length)
+        except Exception:
+            continue
+        if ln < 0.5:
+            continue
+        if ln > ref * 2.5:
+            continue
+        kept.append(part)
+    if not kept:
+        return None
+    if len(kept) == 1:
+        return kept[0]
+    try:
+        from shapely.geometry import MultiLineString
+
+        return MultiLineString(kept)
+    except Exception:
+        return max(kept, key=lambda g: float(g.length))
+
+
 def marking_strip_polygons(coords_m, tags: dict[str, str], width_m: Optional[float] = None, vertex_width_m=None) -> list[dict]:
-    """Thin LineString.buffer(0.08) marking strips. z = roads + 0.01 m."""
+    """Thin LineString.buffer(0.08) marking strips. z = roads + 0.01 m.
+
+    Lane dashes follow effective_lane_count(typical width). Short stubs skip
+    unstable side offsets to avoid spaghetti near junctions.
+    """
     if coords_m is None or len(coords_m) < 2:
         return []
     if width_m is None:
         width_m = way_width_m(tags)
-    kind = marking_kind(tags, width_m)
+    try:
+        piece_len = float(LineString(coords_m).length)
+    except Exception:
+        piece_len = 0.0
+    if piece_len < MIN_MARKING_PIECE_M:
+        return []
+
     vary = vertex_width_m if vertex_width_m is not None and len(vertex_width_m) == len(coords_m) else None
-    offsets = offset_polylines(coords_m, width_m, vary)
+    width_for_lanes = _typical_width_m(width_m, vary)
+    kind = marking_kind(tags, width_for_lanes)
     strips: list[dict] = []
 
+    center_line = LineString(coords_m)
     center_style = kind["center"]
     if center_style == "double_yellow_solid":
-        center = offsets["center"]
-        if center is not None and not center.is_empty:
+        if center_line is not None and not center_line.is_empty:
             half = DOUBLE_YELLOW_SEP_M / 2.0
-            for side in ("left", "right"):
-                line = _parallel_offset(center, half, side)
+            for sign in (1.0, -1.0):
+                line = _sanitize_marking_line(_stable_side_offset(coords_m, sign * half), piece_len)
                 strips.extend(_buffer_marking(line, "center", center_style))
     elif center_style != "none":
-        strips.extend(_buffer_marking(offsets["center"], "center", center_style))
+        strips.extend(_buffer_marking(center_line, "center", center_style))
 
-    if kind["lane"] == "white_dash" and width_m > 0:
-        if vary is not None:
-            for frac in (0.25, -0.25):
-                line = _offset_line_variable(coords_m, vary, frac)
-                strips.extend(_buffer_marking(line, "lane", "white_dash"))
-        else:
-            center = offsets["center"]
-            if center is not None and not center.is_empty:
-                quarter = float(width_m) / 4.0
-                for side in ("left", "right"):
-                    line = _parallel_offset(center, quarter, side)
-                    strips.extend(_buffer_marking(line, "lane", "white_dash"))
+    if kind["lane"] == "white_dash" and width_for_lanes > 0:
+        seps = lane_separator_offsets_m(tags, width_for_lanes)
+        if center_style in {"double_yellow_solid", "single_yellow_solid", "single_yellow_dash"}:
+            min_clear = DOUBLE_YELLOW_SEP_M + 0.25
+            seps = [o for o in seps if abs(float(o)) >= min_clear]
+        for off in seps:
+            if vary is not None:
+                frac = float(off) / width_for_lanes
+                line = _sanitize_marking_line(_offset_line_variable(coords_m, vary, frac), piece_len)
+            else:
+                line = _sanitize_marking_line(_stable_side_offset(coords_m, float(off)), piece_len)
+            strips.extend(_buffer_marking(line, "lane", "white_dash"))
 
     if kind["edge"] == "white_solid":
-        strips.extend(_buffer_marking(offsets["left"], "edge", "white_solid"))
-        strips.extend(_buffer_marking(offsets["right"], "edge", "white_solid"))
+        if vary is not None:
+            left = _sanitize_marking_line(_offset_line_variable(coords_m, vary, 0.5), piece_len)
+            right = _sanitize_marking_line(_offset_line_variable(coords_m, vary, -0.5), piece_len)
+        else:
+            half = float(width_m) * 0.5
+            left = _sanitize_marking_line(_stable_side_offset(coords_m, half), piece_len)
+            right = _sanitize_marking_line(_stable_side_offset(coords_m, -half), piece_len)
+        strips.extend(_buffer_marking(left, "edge", "white_solid"))
+        strips.extend(_buffer_marking(right, "edge", "white_solid"))
 
     return strips
 
@@ -1357,18 +1541,20 @@ def _point_in_geoms(xy, geoms: list) -> bool:
 
 
 def _dedupe_arrows(arrows: list[dict], min_perp_m: float = 4.2, min_same_m: float = 14.0) -> list[dict]:
-    """Drop stacked arrows: same heading too close, or crossing arrows on top of each other."""
+    """Drop stacked arrows: same heading/kind too close, or crossing arrows on top of each other."""
     kept: list[dict] = []
     for a in arrows:
         ax, ay = float(a["xy"][0]), float(a["xy"][1])
         ayaw = float(a["yaw_rad"])
+        akind = str(a.get("kind") or "straight")
         drop = False
         for b in kept:
             d = math.hypot(ax - float(b["xy"][0]), ay - float(b["xy"][1]))
             dh = _ang_abs(ayaw - float(b["yaw_rad"]))
+            bkind = str(b.get("kind") or "straight")
             same = dh < 0.35
             perp = 0.55 < dh < math.pi - 0.55
-            if same and d < min_same_m:
+            if same and d < min_same_m and akind == bkind:
                 drop = True
                 break
             if perp and d < min_perp_m:
@@ -1379,12 +1565,193 @@ def _dedupe_arrows(arrows: list[dict], min_perp_m: float = 4.2, min_same_m: floa
     return kept
 
 
+_TURN_TOKEN_MAP = {
+    "none": None,
+    "": None,
+    "through": "straight",
+    "straight": "straight",
+    "left": "left",
+    "slight_left": "left",
+    "sharp_left": "left",
+    "right": "right",
+    "slight_right": "right",
+    "sharp_right": "right",
+    "reverse": "uturn",
+    "uturn": "uturn",
+    "u_turn": "uturn",
+    "merge_to_left": "merge_left",
+    "merge_to_right": "merge_right",
+}
+
+
+def _combine_turn_classes(classes: set[str]) -> str:
+    c = {x for x in classes if x}
+    if not c:
+        return "straight"
+    if c == {"straight"}:
+        return "straight"
+    if c == {"left"}:
+        return "left"
+    if c == {"right"}:
+        return "right"
+    if c == {"uturn"}:
+        return "uturn"
+    if c == {"merge_left"}:
+        return "merge_left"
+    if c == {"merge_right"}:
+        return "merge_right"
+    if c == {"straight", "left"}:
+        return "straight_left"
+    if c == {"straight", "right"}:
+        return "straight_right"
+    if c == {"left", "right"}:
+        return "left_right"
+    if c == {"straight", "uturn"}:
+        return "straight_uturn"
+    if {"left", "right", "straight"} <= c:
+        return "all"
+    if "merge_left" in c:
+        return "merge_left"
+    if "merge_right" in c:
+        return "merge_right"
+    if "uturn" in c and "straight" in c:
+        return "straight_uturn"
+    if "left" in c and "straight" in c:
+        return "straight_left"
+    if "right" in c and "straight" in c:
+        return "straight_right"
+    if "left" in c and "right" in c:
+        return "left_right"
+    return sorted(c)[0]
+
+
+def _normalize_turn_slot(raw: str) -> str | None:
+    parts = [p.strip().lower() for p in str(raw or "").replace("|", ";").split(";") if p.strip()]
+    if not parts:
+        return None
+    mapped: list[str] = []
+    for p in parts:
+        m = _TURN_TOKEN_MAP.get(p)
+        if m and m not in mapped:
+            mapped.append(m)
+    if not mapped:
+        return None
+    return _combine_turn_classes(set(mapped))
+
+
+def parse_turn_lane_kinds(tags: dict[str, str], direction: str) -> list[str] | None:
+    """功能：解析 turn:lanes[:forward|:backward] → 每车道箭头 kind；无标签返回 None。"""
+    tags = tags or {}
+    raw = None
+    if direction == "forward":
+        raw = tags.get("turn:lanes:forward") or tags.get("turn:lanes")
+    elif direction == "backward":
+        raw = tags.get("turn:lanes:backward")
+        if raw is None and oneway_travel_sign(tags) < 0:
+            raw = tags.get("turn:lanes")
+    else:
+        raw = tags.get("turn:lanes")
+    if raw is None or not str(raw).strip():
+        return None
+    slots = [s.strip() for s in str(raw).split("|")]
+    kinds = [_normalize_turn_slot(s) for s in slots]
+    if all(k is None for k in kinds):
+        return None
+    return [k or "straight" for k in kinds]
+
+
+def lane_center_offsets_m(width_m: float, n_lanes: int) -> list[float]:
+    """Offsets (m) for lane centers left→right in travel direction; + = right of travel."""
+    w = max(0.1, float(width_m))
+    n = max(1, int(n_lanes))
+    return [-0.5 * w + (i + 0.5) * (w / n) for i in range(n)]
+
+
+def _angle_delta(a: float, b: float) -> float:
+    return math.atan2(math.sin(a - b), math.cos(a - b))
+
+
+def _classify_turn_by_heading(inbound_yaw: float, outbound_yaw: float) -> str:
+    d = _angle_delta(outbound_yaw, inbound_yaw)
+    ad = abs(d)
+    if ad < 0.55:
+        return "straight"
+    if ad > 2.6:
+        return "uturn"
+    if d > 0:
+        return "left"
+    return "right"
+
+
+def _outbound_headings_at_node(ways: list, node_key) -> list[float]:
+    out: list[float] = []
+    for way in ways:
+        coords = way.coords_m
+        if coords is None or len(coords) < 2:
+            continue
+        for i, xy in enumerate(coords):
+            if _node_key(xy) != node_key:
+                continue
+            if i + 1 < len(coords):
+                x0, y0 = float(xy[0]), float(xy[1])
+                x1, y1 = float(coords[i + 1][0]), float(coords[i + 1][1])
+                if math.hypot(x1 - x0, y1 - y0) > 0.2:
+                    out.append(math.atan2(y1 - y0, x1 - x0))
+            if i > 0:
+                x0, y0 = float(xy[0]), float(xy[1])
+                x1, y1 = float(coords[i - 1][0]), float(coords[i - 1][1])
+                if math.hypot(x1 - x0, y1 - y0) > 0.2:
+                    out.append(math.atan2(y1 - y0, x1 - x0))
+    return out
+
+
+def _build_node_outbound_index(ways: list) -> dict:
+    """功能：预计算路口节点 → 离开该节点的航向列表（O(顶点数)）。"""
+    index: dict = {}
+    for way in ways:
+        coords = way.coords_m
+        if coords is None or len(coords) < 2:
+            continue
+        for i, xy in enumerate(coords):
+            key = _node_key(xy)
+            bucket = index.setdefault(key, [])
+            if i + 1 < len(coords):
+                x0, y0 = float(xy[0]), float(xy[1])
+                x1, y1 = float(coords[i + 1][0]), float(coords[i + 1][1])
+                if math.hypot(x1 - x0, y1 - y0) > 0.2:
+                    bucket.append(math.atan2(y1 - y0, x1 - x0))
+            if i > 0:
+                x0, y0 = float(xy[0]), float(xy[1])
+                x1, y1 = float(coords[i - 1][0]), float(coords[i - 1][1])
+                if math.hypot(x1 - x0, y1 - y0) > 0.2:
+                    bucket.append(math.atan2(y1 - y0, x1 - x0))
+    return index
+
+
+def _topology_arrow_kind(inbound_yaw: float, outbound_yaws: list[float]) -> str:
+    classes: set[str] = set()
+    for oy in outbound_yaws:
+        if abs(_angle_delta(oy, inbound_yaw + math.pi)) < 0.4:
+            continue
+        classes.add(_classify_turn_by_heading(inbound_yaw, oy))
+    if not classes:
+        return "straight"
+    return _combine_turn_classes(classes)
+
+
 def junction_arrows(buffered, graph_degree: dict) -> list:
-    """One inbound arrow per approach at deg>=3, aligned to the lane. None on roundabouts."""
+    """Junction approach arrows with kind for multi-texture decals.
+
+    Priority per approach:
+    1) OSM turn:lanes / turn:lanes:forward|backward → one arrow per lane
+    2) Else topology at degree≥3 (major highways, incl. two-way) → one combined-kind arrow
+    Roundabout rings stay arrow-free.
+    """
     arrows: list[dict] = []
     if not buffered or not graph_degree:
         return arrows
 
+    ways = [w for w, _g in buffered]
     ra_geoms: list = []
     for way, _geom in buffered:
         if not _is_roundabout_way(way):
@@ -1393,7 +1760,40 @@ def junction_arrows(buffered, graph_degree: dict) -> list:
         if patch is not None and not getattr(patch, "is_empty", True):
             ra_geoms.append(patch)
 
+    motor_ways = [
+        w
+        for w in ways
+        if is_motor_highway(w.tags)
+        and not _is_roundabout_way(w)
+        and w.coords_m is not None
+        and len(w.coords_m) >= 2
+    ]
+    outbound_index = _build_node_outbound_index(motor_ways)
+
     seen: set[tuple] = set()
+
+    def _emit(poly, center_xy, yaw, osm_id, kind: str) -> None:
+        if _point_in_geoms(center_xy, ra_geoms):
+            return
+        key = (
+            round(center_xy[0] * 2.0) / 2.0,
+            round(center_xy[1] * 2.0) / 2.0,
+            round(yaw, 2),
+            str(kind),
+        )
+        if key in seen:
+            return
+        seen.add(key)
+        arrows.append(
+            {
+                "poly": poly,
+                "xy": center_xy,
+                "yaw_rad": yaw,
+                "osm_id": osm_id,
+                "kind": kind,
+            }
+        )
+
     for way, _geom in buffered:
         if way.tags.get("highway") == "junction":
             continue
@@ -1408,40 +1808,54 @@ def junction_arrows(buffered, graph_degree: dict) -> list:
             continue
         n = len(coords)
         width = way_width_m(way.tags)
-        offsets = inbound_lane_offsets_m(way.tags, width)
+        travel = oneway_travel_sign(way.tags)
         setback = max(ARROW_SETBACK_M, width * 0.55 + JUNCTION_EXTRA_M + 2.5)
+
         for i, xy in enumerate(coords):
             if int(graph_degree.get(_node_key(xy), 0)) < 3:
                 continue
-            approaches: list[int] = []
-            if i > 0:
-                approaches.append(-1)
-            if i < n - 1:
-                approaches.append(1)
-            for step in approaches:
-                for offset in offsets:
+            node_key = _node_key(xy)
+            approaches: list[tuple[int, str]] = []
+            if travel > 0 and i > 0:
+                approaches.append((-1, "forward"))
+            elif travel < 0 and i < n - 1:
+                approaches.append((1, "backward"))
+            elif travel == 0:
+                if i > 0:
+                    approaches.append((-1, "forward"))
+                if i < n - 1:
+                    approaches.append((1, "backward"))
+
+            for step, lane_dir in approaches:
+                walked = _walk_along(coords, i, step, float(setback))
+                if walked is None:
+                    continue
+                (_px, _py), (ux, uy) = walked
+                length = math.hypot(ux, uy)
+                if length < 1e-9:
+                    continue
+                inbound_yaw = math.atan2(uy / length, ux / length)
+
+                lane_kinds = parse_turn_lane_kinds(way.tags, lane_dir)
+                if lane_kinds:
+                    offsets = lane_center_offsets_m(width, len(lane_kinds))
+                    for kind, offset in zip(lane_kinds, offsets):
+                        placed = _arrow_on_approach(coords, i, step, offset, setback)
+                        if placed is None:
+                            continue
+                        poly, center_xy, yaw = placed
+                        _emit(poly, center_xy, yaw, way.osm_id, kind)
+                    continue
+
+                out_yaws = outbound_index.get(node_key) or []
+                kind = _topology_arrow_kind(inbound_yaw, out_yaws)
+                for offset in inbound_lane_offsets_m(way.tags, width):
                     placed = _arrow_on_approach(coords, i, step, offset, setback)
                     if placed is None:
                         continue
                     poly, center_xy, yaw = placed
-                    if _point_in_geoms(center_xy, ra_geoms):
-                        continue
-                    key = (
-                        round(center_xy[0] * 2.0) / 2.0,
-                        round(center_xy[1] * 2.0) / 2.0,
-                        round(yaw, 2),
-                    )
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    arrows.append(
-                        {
-                            "poly": poly,
-                            "xy": center_xy,
-                            "yaw_rad": yaw,
-                            "osm_id": way.osm_id,
-                        }
-                    )
+                    _emit(poly, center_xy, yaw, way.osm_id, kind)
+
     return _dedupe_arrows(arrows)
 
 
@@ -1542,10 +1956,25 @@ def _buffer_solid(line, role: str, style: str) -> list[dict]:
         return []
     try:
         poly = line.buffer(MARKING_BUFFER_M)
+        ref_len = float(line.length)
     except Exception:
         return []
     if poly is None or poly.is_empty:
         return []
+    if not getattr(poly, "is_valid", True):
+        try:
+            poly = poly.buffer(0)
+        except Exception:
+            return []
+    if poly is None or poly.is_empty:
+        return []
+    # 自交爆炸的标线面积会远超「线长×线宽」
+    try:
+        max_area = max(2.0, ref_len * MARKING_BUFFER_M * 8.0)
+        if float(poly.area) > max_area:
+            return []
+    except Exception:
+        pass
     return [{"role": role, "style": style, "geom": poly, "z_m": MARKING_Z_M}]
 
 

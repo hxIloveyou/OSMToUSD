@@ -1,3 +1,4 @@
+# 中文说明：计算场景空间范围（extent.json）：原点、WGS84/局部框、OSM/DEM 关系策略。
 from __future__ import annotations
 
 import json
@@ -201,7 +202,10 @@ def resolve_extent(
     project_root: Optional[Path] = None,
     input_dirs: Optional[list[Path]] = None,
 ) -> dict[str, Any]:
-    """Compute final WGS84 extent and local meters extent (schema v0.2)."""
+    """Compute final WGS84 extent and local meters extent (schema v0.2).
+
+功能：根据 frame/inputs 计算空间契约（WGS84/局部范围）。
+"""
     origin_cfg = frame.get("origin_wgs84") or {}
     lon = float(origin_cfg.get("longitude", 0.0))
     lat = float(origin_cfg.get("latitude", 0.0))
@@ -406,5 +410,6 @@ def resolve_extent(
 
 
 def write_extent_json(path: Path, payload: dict) -> None:
+    """功能：写出 extent.json。"""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

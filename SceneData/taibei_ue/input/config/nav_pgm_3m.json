@@ -1,0 +1,33 @@
+// nav_pgm 变体 — 3m 分辨率（手动工具/备选，不替代默认 connected/）
+{
+  // 栅格分辨率（米/像素）
+  "resolution_m": 3.0,
+
+  // true：建筑用简化多边形
+  "simple_buildings": false,
+
+  "sources": {
+    // 占据来源标识
+    "occupancy": "osm"
+  },
+
+  // 参与栅格化的 OSM 图层开关
+  "layers": {
+    "roads": true,
+    "buildings": true,
+    "water": true
+  },
+
+  "align_overlay": {
+    "enabled": false,  // 变体输出一般不生成 debug 叠加
+    "note": "Manual variant; debug overlay stays on nav2/connected."
+  },
+
+  // 写到 USD 包内 variants 目录，避免覆盖默认 CostMap connected/
+  "outputs": {
+    "map_pgm": "nav2/variants/3m/map.pgm",
+    "cost_pgm": "nav2/variants/3m/cost.pgm",
+    "map_yaml": "nav2/variants/3m/map.yaml",
+    "meta_json": "nav2/variants/3m/map_meta.json"
+  }
+}

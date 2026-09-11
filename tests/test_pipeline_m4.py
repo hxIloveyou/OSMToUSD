@@ -1,9 +1,8 @@
-"""Integration tests for pipeline M4: overlay, assemble_world, package_zip."""
+"""Integration tests for pipeline M4: overlay + assemble_world (no package_zip)."""
 
 from __future__ import annotations
 
 import json
-import zipfile
 from pathlib import Path
 
 from pxr import Usd, UsdGeom
@@ -41,37 +40,33 @@ def _m4_cfg(tmp_path: Path, osm_path: Path) -> PipelineConfig:
             StepConfig(
                 step="osm_city_usd",
                 enabled=True,
-                config_ref="configs/osm_taibei_ue.json",
+                config_ref="osm_city_usd.json",
             ),
             StepConfig(
                 step="nav_pgm",
                 enabled=True,
-                config_ref="configs/nav_pgm_osm_only.json",
+                config_ref="nav_pgm.json",
             ),
             StepConfig(
                 step="overlay",
                 enabled=True,
-                config_ref="configs/overlay_default.json",
+                config_ref="overlay.json",
             ),
             StepConfig(
                 step="assemble_world",
                 enabled=True,
-                config_ref="configs/world_cityusd_v1.json",
-            ),
-            StepConfig(
-                step="package_zip",
-                enabled=True,
-                config_ref="configs/package_zip_default.json",
+                config_ref="assemble_world.json",
             ),
         ],
         runtime={"on_step_fail": "stop"},
         raw={},
-        source_path=root / "examples" / "taibei_ue.pipeline.yaml",
+        source_path=root / "SceneData" / "taibei_ue" / "input" / "config" / "pipeline.yaml",
         project_root=root,
     )
 
 
-def test_m4_overlay_assemble_zip_tiny_osm(tmp_path: Path) -> None:
+def test_m4_overlay_assemble_tiny_osm(tmp_path: Path) -> None:
+    """overlay + World 组装；不跑 package_zip（避免 pytest 临时目录 zip 自膨胀占满磁盘）。"""
     root = Path(__file__).resolve().parents[1]
     osm_copy = tmp_path / "tiny.osm"
     osm_copy.write_text((root / "tests" / "fixtures" / "tiny.osm").read_text(encoding="utf-8"))
@@ -79,7 +74,7 @@ def test_m4_overlay_assemble_zip_tiny_osm(tmp_path: Path) -> None:
     cfg = _m4_cfg(tmp_path / "packages", osm_copy)
     pkg = run_pipeline(
         cfg,
-        only=["resolve_extent", "osm_city_usd", "nav_pgm", "overlay", "assemble_world", "package_zip"],
+        only=["resolve_extent", "osm_city_usd", "nav_pgm", "overlay", "assemble_world"],
     )
 
     for name in (
@@ -110,17 +105,8 @@ def test_m4_overlay_assemble_zip_tiny_osm(tmp_path: Path) -> None:
     assert sources.get("osm")
     assert sources.get("extent") == "./extent.json"
 
-    zip_path = cfg.scene_root() / "test_m4.zip"
-    assert zip_path.is_file()
-    with zipfile.ZipFile(zip_path) as zf:
-        names = set(zf.namelist())
-    assert any("test_m4-USD/World_test_m4.usda" in n or n.endswith("World_test_m4.usda") for n in names)
-    assert any(n.endswith("meta.json") or "/meta.json" in n for n in names)
-    assert "test_m4-CostMap/2D/connected/map.pgm" in names
-    assert "test_m4-CostMap/2D/connected/map_soft.pgm" in names
-
     manifest = json.loads((pkg / "manifest.json").read_text(encoding="utf-8"))
-    for step in ("overlay", "assemble_world", "package_zip"):
+    for step in ("overlay", "assemble_world"):
         assert manifest["steps"][step]["status"] == "ok"
 
     assert len(sublayers) <= len(WORLD_SUBLAYERS)

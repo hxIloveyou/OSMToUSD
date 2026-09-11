@@ -1,4 +1,5 @@
 """Collect occupied/free polygons for Nav2 PGM (OSM-only v0.2)."""
+# 中文说明：为 nav PGM 收集占用/自由多边形（含连通模式）。
 
 from __future__ import annotations
 
@@ -85,6 +86,7 @@ def collect_nav_polygons(
     use_roads_free: bool = True,
     simple_buildings: bool = False,
 ) -> tuple[list, list]:
+    """功能：收集导航占用与自由多边形。"""
     occupied: list = []
     free: list = []
 
@@ -125,7 +127,9 @@ def collect_nav_polygons_connected(
 
     - Motor roads: per-way buffer, flat caps + round joins, NO subtract_road_hierarchy.
     - Pair with rasterize_pgm(free_all_touched=True, binary_occupancy=True).
-    """
+
+功能：连通模式：车行道缓冲 + 建筑/水体占用。
+"""
     occupied: list = []
     free: list = []
 

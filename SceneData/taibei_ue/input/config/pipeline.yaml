@@ -1,0 +1,54 @@
+# Scene-private pipeline for taibei_ue.
+# Step JSON: this folder first, then configs/default/.
+schema_version: "0.3"
+extends:
+  - default/pipeline.yaml
+
+scene:
+  id: taibei_ue
+  title: Taipei UE release
+  id_pattern: "taibei_ue_{timestamp}"
+
+frame:
+  origin_wgs84:
+    longitude: 121.532933
+    latitude: 25.047453
+    height_m: 0.0
+  projection: utm
+  utm_epsg: 32651
+  extent:
+    mode: auto
+    pad_deg: 0.005
+    allow_disjoint: false
+    on_relation:
+      containment: use_smaller
+      partial_overlap: warn
+      disjoint: fail
+
+inputs:
+  osm:
+    path: osm/taibei.osm.pbf
+    clip_to_extent: true
+  dem:
+    path: dem/cliptb.tif
+    optional: false
+  ortho:
+    path: imagery/taibei.tif
+    optional: true
+  asset_library:
+    path: tools/assets/AssetLibrary
+  scene_description:
+    path: uploads/demo_overlay_full_description.json
+    optional: true
+
+output:
+  layout: cityusd_v1
+
+runtime:
+  backup_output_before_run: true
+  backup_previous_packages: false
+  backup_self_if_exists: false
+  backup_dir: backups
+  backup_exclude:
+    - "**/*.zip"
+    - "*.zip"

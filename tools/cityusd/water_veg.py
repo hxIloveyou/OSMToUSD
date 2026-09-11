@@ -1,3 +1,4 @@
+# 中文说明：水体/植被多边形提取与合并。
 from __future__ import annotations
 
 from typing import Optional

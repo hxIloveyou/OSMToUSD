@@ -1,0 +1,88 @@
+# Shared default pipeline steps. Scene configs extend this file via:
+#   extends: [default/pipeline.yaml]
+# Step JSON 解析顺序：
+#   configs/default/{name}.json  →  SceneData/{id}/input/config/{name}.json（deep-merge）
+#
+# schema_version: 流水线契约版本
+schema_version: "0.3"
+
+output:
+  # 输出目录布局标识（cityusd_v1 = {id}-USD + {id}-CostMap）
+  layout: cityusd_v1
+
+pipeline:
+  # 计算场景空间范围（extent.json），供后续步骤共用
+  - step: resolve_extent
+    enabled: true
+
+  # DEM/正射 → 高度图与地形层
+  - step: terrain
+    enabled: true
+    depends_on: [resolve_extent]
+    config_ref: terrain.json
+
+  # OSM → 城市几何 USD 图层
+  - step: osm_city_usd
+    enabled: true
+    depends_on: [resolve_extent, terrain]
+    config_ref: osm_city_usd.json
+
+  # OSM 属性分片 catalog（查询用）
+  - step: osm_labels
+    enabled: true
+    depends_on: [osm_city_usd]
+    config_ref: osm_labels.json
+
+  # OSM → Nav2 PGM / costmap
+  - step: nav_pgm
+    enabled: true
+    depends_on: [resolve_extent, osm_city_usd]
+    config_ref: nav_pgm.json
+
+  # OSM+DEM → OctoMap 3D（.bt），写入 CostMap/3D/
+  - step: nav_octomap
+    enabled: true
+    depends_on: [resolve_extent, terrain]
+    config_ref: nav_octomap.json
+
+  # DEM → nature 坡度/悬崖代价层
+  - step: nav2_nature
+    enabled: true
+    depends_on: [resolve_extent, terrain]
+    config_ref: nav2_nature.json
+
+  # 场景描述 → overlay 子层
+  - step: overlay
+    enabled: true
+    depends_on: [osm_city_usd]
+    config_ref: overlay.json
+
+  # 组装 World_*.usda + meta.json
+  - step: assemble_world
+    enabled: true
+    depends_on: [terrain, osm_city_usd, nav_pgm, nav_octomap, nav2_nature, osm_labels]
+    config_ref: assemble_world.json
+
+  # 打包 output/ 为 zip
+  - step: package_zip
+    enabled: true
+    depends_on: [assemble_world]
+    config_ref: package_zip.json
+
+runtime:
+  # 某步失败时：stop = 中止；continue = 继续后续（若实现支持）
+  on_step_fail: stop
+  # true：manifest 中 input_hash 未变的步骤可跳过
+  resume: false
+  # 是否写出各步 *.resolved.json 快照
+  write_intermediate_configs: true
+  # 开跑前把已有 output/ 打成日期 zip
+  backup_output_before_run: true
+  # 是否备份同目录下其它旧 Scene Package（旧布局用）
+  backup_previous_packages: false
+  # 备份 zip 相对场景根的目录名
+  backup_dir: backups
+  # 备份时排除的文件（避免把旧 zip 再打进新 zip）
+  backup_exclude:
+    - "**/*.zip"
+    - "*.zip"

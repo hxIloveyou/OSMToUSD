@@ -1,4 +1,5 @@
 """Download CC0 building facades and roofs (ambientCG) and cache Color maps."""
+# 中文说明：下载 ambientCG CC0 立面/屋顶并缓存 Color 贴图。
 
 from __future__ import annotations
 

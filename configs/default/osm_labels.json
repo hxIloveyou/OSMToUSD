@@ -1,0 +1,34 @@
+// osm_labels step — OSM 属性分片目录（运行时查询用，默认不进 World）
+{
+  // 分片格式标识（当前实现为按网格切分的 JSON shards）
+  "format": "sharded",
+
+  // false：属性目录不作为 World 子层合成（仅 catalog 供查询）
+  "compose_into_world": false,
+
+  "shard_grid": {
+    // 网格对齐参考（文档/元数据用，如 LOD0 网格）
+    "align_with": "LOD0",
+    // 每个分片单元格边长（米）；越小文件越多、单文件越轻
+    "cell_size_m": 200
+  },
+
+  // 写入 shard_manifest 的运行时 API 提示（供消费端缓存策略）
+  "runtime_api": {
+    "enabled": true,
+    "cache": {
+      "memory": true,  // 建议内存缓存
+      "disk": true     // 建议磁盘缓存
+    }
+  },
+
+  // 要素归属分片的规则说明（元数据；实现为质心落在哪个 cell）
+  "feature_to_shard": "centroid_in_cell",
+
+  // 相对 {scene_id}-USD/ 的 catalog 输出路径
+  "outputs": {
+    "schema": "catalog/osm_attr_schema.json",           // 属性字段 schema
+    "index": "catalog/index/shard_manifest.json",       // 分片索引清单
+    "shards_dir": "catalog/shards/"                    // 各分片 JSON 目录
+  }
+}

@@ -1,3 +1,4 @@
+# 中文说明：nav2_nature 步骤：DEM → 坡度/悬崖 nature 代价层。
 from __future__ import annotations
 
 import json
@@ -13,6 +14,7 @@ LogFn = Callable[[str], None]
 
 
 def run_nav2_nature(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]:
+    """功能：由 DEM 生成 nature 坡度/悬崖层。"""
     step = cfg.step("nav2_nature")
     if step is None:
         raise RuntimeError("nav2_nature step missing from pipeline")

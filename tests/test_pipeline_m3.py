@@ -37,12 +37,12 @@ def _base_cfg(tmp_path: Path, osm_path: Path) -> PipelineConfig:
             StepConfig(
                 step="osm_labels",
                 enabled=True,
-                config_ref="configs/osm_labels_sharded.json",
+                config_ref="osm_labels.json",
             ),
             StepConfig(
                 step="nav_pgm",
                 enabled=True,
-                config_ref="configs/nav_pgm_osm_only.json",
+                config_ref="nav_pgm.json",
             ),
         ],
         runtime={"on_step_fail": "stop"},

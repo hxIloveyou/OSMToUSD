@@ -1,3 +1,4 @@
+# 中文说明：nav_pgm 步骤：OSM → CostMap/2D 占据图、软边与对齐 debug 叠加。
 from __future__ import annotations
 
 import json
@@ -36,6 +37,7 @@ def _find_staged_osm(package_dir: Path) -> Path | None:
 
 
 def run_nav_pgm(cfg: PipelineConfig, package_dir: Path, log: LogFn) -> list[str]:
+    """功能：生成 CostMap/2D 占据图与相关 yaml/软边。"""
     step = cfg.step("nav_pgm")
     if step is None:
         raise RuntimeError("nav_pgm step missing from pipeline")

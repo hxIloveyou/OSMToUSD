@@ -3,7 +3,9 @@
 Layout::
 
     SceneData/{scene_id}/
-      input/                 # osm, dem, imagery (scene-private)
+      input/
+        osm, dem, imagery/
+        config/              # scene-private pipeline + step JSON (preferred)
       output/
         {scene_id}-USD/      # World, layers, textures, catalog, …
         {scene_id}-CostMap/
@@ -11,8 +13,11 @@ Layout::
           3D/                # reserved (external tools)
       backups/               # dated zips of previous output/
 
-Shared assets live at tools/assets/ (not under SceneData).
+Shared defaults: configs/default/ (used when scene config file is missing).
+Shared assets: tools/assets/ (not under SceneData).
+Variants = separate scene_id folders.
 """
+# 中文说明：SceneData 路径约定：input/config、{id}-USD、{id}-CostMap、backups。
 
 from __future__ import annotations
 
@@ -26,11 +31,23 @@ TOOLS_ASSETS_REL = "tools/assets"
 
 
 def scene_root(project_root: Path, scene_id: str) -> Path:
+    """功能：返回 SceneData/{scene_id} 根路径。"""
     return Path(project_root) / SCENE_DATA_DIRNAME / str(scene_id)
 
 
 def scene_input_dir(project_root: Path, scene_id: str) -> Path:
+    """功能：返回场景 input/ 目录。"""
     return scene_root(project_root, scene_id) / "input"
+
+
+def scene_config_dir(project_root: Path, scene_id: str) -> Path:
+    """功能：返回场景 input/config/ 目录。"""
+    return scene_input_dir(project_root, scene_id) / "config"
+
+
+def default_configs_dir(project_root: Path) -> Path:
+    """功能：返回 configs/default/ 目录。"""
+    return Path(project_root) / "configs" / "default"
 
 
 def usd_folder_name(scene_id: str) -> str:
@@ -42,10 +59,12 @@ def costmap_folder_name(scene_id: str) -> str:
 
 
 def scene_usd_dir(project_root: Path, scene_id: str) -> Path:
+    """功能：返回 output/{id}-USD 路径。"""
     return scene_root(project_root, scene_id) / "output" / usd_folder_name(scene_id)
 
 
 def scene_costmap_2d_dir(project_root: Path, scene_id: str) -> Path:
+    """功能：返回 output/{id}-CostMap/2D 路径。"""
     return scene_root(project_root, scene_id) / "output" / costmap_folder_name(scene_id) / "2D"
 
 

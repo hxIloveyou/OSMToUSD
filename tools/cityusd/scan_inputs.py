@@ -1,3 +1,4 @@
+# 中文说明：扫描输入目录中的 OSM/DEM/影像/资产路径。
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -82,6 +83,7 @@ def _find_assets_dir(data_dir: Path) -> Optional[Path]:
 
 
 def scan_data_dir(data_dir: Path) -> FoundInputs:
+    """功能：扫描数据目录中的 OSM/DEM/影像/资产。"""
     dem = _find_dem(data_dir)
     return FoundInputs(
         osm=_find_osm(data_dir),

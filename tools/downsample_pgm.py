@@ -11,13 +11,13 @@ Also rewrites cost.pgm and map.yaml (resolution *= factor; same origin).
 This avoids thin-road gaps that appear when re-rasterizing OSM polygons at
 coarse resolution with all_touched=False.
 """
+# 中文说明：整数倍降采样；块内任一 FREE 则输出 FREE，减少细路断裂。
 
 from __future__ import annotations
 
 import argparse
 import json
 import math
-import shutil
 import sys
 from pathlib import Path
 
@@ -31,6 +31,10 @@ COST_LETHAL = 254
 
 
 def read_pgm(path: Path) -> tuple[bytes, np.ndarray]:
+    """Read P5 PGM; return (header, grid).
+
+    功能：读取 P5 PGM，返回文件头与栅格。
+    """
     raw = path.read_bytes()
     if not raw.startswith(b"P5"):
         raise ValueError(f"not P5: {path}")
@@ -49,6 +53,10 @@ def read_pgm(path: Path) -> tuple[bytes, np.ndarray]:
 
 
 def write_pgm(path: Path, grid: np.ndarray) -> None:
+    """Write standard P5 PGM (maxval=255).
+
+    功能：写出标准 P5 PGM。
+    """
     ny, nx = grid.shape
     header = f"P5\n{nx} {ny}\n255\n".encode("ascii")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +64,10 @@ def write_pgm(path: Path, grid: np.ndarray) -> None:
 
 
 def downsample_occupancy(grid: np.ndarray, factor: int, *, binary: bool) -> np.ndarray:
+    """Downsample by factor×factor blocks (any-FREE keeps road).
+
+    功能：按 factor×factor 块降采样。
+    """
     if factor < 2:
         raise ValueError("factor must be >= 2")
     h, w = grid.shape
@@ -79,6 +91,10 @@ def downsample_occupancy(grid: np.ndarray, factor: int, *, binary: bool) -> np.n
 
 
 def rewrite_yaml(src: Path, dst: Path, *, factor: int, image_name: str = "map.pgm") -> None:
+    """Copy map.yaml and multiply resolution by factor.
+
+    功能：复制 map.yaml 并把 resolution 乘以 factor。
+    """
     text = src.read_text(encoding="utf-8")
     lines = []
     for line in text.splitlines():
@@ -93,6 +109,10 @@ def rewrite_yaml(src: Path, dst: Path, *, factor: int, image_name: str = "map.pg
 
 
 def rewrite_meta(src: Path | None, dst: Path, grid: np.ndarray, resolution_m: float) -> None:
+    """Update map_meta.json for new size/resolution.
+
+    功能：按新尺寸/分辨率更新 map_meta.json。
+    """
     if src is None or not src.is_file():
         return
     meta = json.loads(src.read_text(encoding="utf-8"))
@@ -124,10 +144,14 @@ def process(
     factor: int,
     binary: bool,
 ) -> dict:
+    """Downsample a nav directory into a sibling folder.
+
+    功能：对 nav 目录整包降采样并写出旁路结果。
+    """
     src_map = nav_dir / "map.pgm"
     header_ignored, grid = read_pgm(src_map)
+    del header_ignored
     src_yaml = nav_dir / "map.yaml"
-    # read old resolution
     old_res = 1.0
     if src_yaml.is_file():
         for line in src_yaml.read_text(encoding="utf-8").splitlines():
@@ -160,6 +184,10 @@ def process(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI entry.
+
+    功能：命令行入口。
+    """
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--input", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)

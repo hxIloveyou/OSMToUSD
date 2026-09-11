@@ -4,6 +4,7 @@ Values are authored in meters; cm companions match UE units (metersPerUnit=0.01)
 Import/post-process should apply these to StaticMeshComponent / HISM — USD alone
 does not auto-cull in Unreal.
 """
+# 中文说明：UE 距离剔除元数据（Max Draw Distance / HISM）。
 
 from __future__ import annotations
 

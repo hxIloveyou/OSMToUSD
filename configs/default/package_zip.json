@@ -1,0 +1,21 @@
+// package_zip step — 将 scene output/（USD + CostMap）打成 zip
+{
+  // zip 文件名；{scene_id} 会被替换。默认写到 SceneData/{id}/ 下
+  "output": "{scene_id}.zip",
+
+  // 压缩方式：deflated（压缩）或 stored（仅归档）
+  "compression": "deflated",
+
+  // 可选：自定义 zip 输出目录或完整路径（相对仓库根或绝对路径）
+  // "output_dir": "dist/",
+
+  // 打包时排除的 glob（相对 output/）
+  // 务必排除 *.zip：若 zip 落在归档根内，漏排除会把自身反复打进包（撑爆磁盘）
+  "exclude": [
+    "backups/**",          // 历史备份
+    "debug/**",            // 调试叠加等
+    "**/*.pending.json",   // 未完成步骤标记
+    "*.zip",
+    "**/*.zip"
+  ]
+}

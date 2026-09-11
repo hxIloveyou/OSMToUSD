@@ -40,7 +40,7 @@ def _pipeline_cfg(tmp_path: Path, osm_path: Path) -> PipelineConfig:
                 step="osm_city_usd",
                 enabled=True,
                 depends_on=["resolve_extent"],
-                config_ref="configs/osm_taibei_ue.json",
+                config_ref="osm_city_usd.json",
             ),
         ],
         runtime={"on_step_fail": "stop"},
@@ -72,7 +72,9 @@ def test_osm_city_usd_step_tiny_osm(tmp_path: Path) -> None:
     stats = json.loads((pkg / "layers" / "city_build_stats.json").read_text(encoding="utf-8"))
     assert stats["stats"]["roads"] >= 1
     assert stats["stats"]["buildings"] >= 1
+    assert stats["stats"].get("building_tiles", 0) >= 1
     assert stats["range_source"] == "pipeline_extent"
+    assert any((pkg / "layers" / "tiles").glob("buildings_*.usd*"))
 
     stage = Usd.Stage.Open(str(roads))
     meshes = [p for p in stage.Traverse() if p.IsA(UsdGeom.Mesh)]

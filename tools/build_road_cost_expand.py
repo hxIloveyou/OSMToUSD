@@ -5,15 +5,14 @@ Does not modify the Scene Package pipeline or overwrite --input.
 
 Typical flow (roads-only occupancy → width×scale → soft cost):
   python tools/build_road_cost_expand.py \\
-    --input  output/ScenePackages/taibei_ue_20260831/nav2/variants/roads_only \\
-    --output output/ScenePackages/taibei_ue_20260831/nav2/variants/roads_x3 \\
-    --width-scale 3 \\
-    --inscribed-m 2.0
+    --input  <roads_only> --output <roads_x3> \\
+    --width-scale 3 --inscribed-m 2.0
 
 Width expansion (scale s):
   For each free pixel with EDT half-width h, dilate by (s-1)*h.
   A corridor of width W≈2h becomes ≈ s·W (e.g. s=3 → about triple width).
 """
+# 中文说明：按倍率加宽道路走廊并生成软/硬代价图，不覆盖 --input。
 
 from __future__ import annotations
 
@@ -38,6 +37,7 @@ COST_MAX_INSCRIBED = 252
 
 
 def read_pgm(path: Path) -> np.ndarray:
+    """功能：读取 P5 PGM 栅格。"""
     raw = path.read_bytes()
     if not raw.startswith(b"P5"):
         raise ValueError(f"not P5: {path}")
@@ -59,6 +59,7 @@ def read_pgm(path: Path) -> np.ndarray:
 
 
 def write_pgm(path: Path, grid: np.ndarray) -> None:
+    """功能：写出 P5 PGM。"""
     ny, nx = grid.shape
     header = f"P5\n{nx} {ny}\n255\n".encode("ascii")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -66,6 +67,7 @@ def write_pgm(path: Path, grid: np.ndarray) -> None:
 
 
 def read_resolution_m(nav_dir: Path) -> float:
+    """功能：从 map.yaml 读取米/像素分辨率。"""
     yaml_path = nav_dir / "map.yaml"
     if not yaml_path.is_file():
         return 1.0
@@ -76,11 +78,9 @@ def read_resolution_m(nav_dir: Path) -> float:
 
 
 def expand_free_width_scale(free: np.ndarray, scale: float) -> np.ndarray:
-    """Grow free corridors so local width ≈ scale × original width.
+    """功能：按局部半宽把自由走廊膨胀到约 scale 倍宽度。
 
-    Fast EDT form: outside a road of half-width h, include pixels within
-    (scale-1)*h of the original free mask (h taken from nearest medial ridge).
-    Then new half-width ≈ scale*h and width ≈ scale × original.
+    用 EDT 估计半宽 h，在脊线附近取 h，再把距原自由区 ≤ (scale-1)*h 的像素并入自由。
     """
     if scale <= 1.0 + 1e-9:
         return free.astype(bool, copy=True)
@@ -88,21 +88,21 @@ def expand_free_width_scale(free: np.ndarray, scale: float) -> np.ndarray:
     if not np.any(free):
         return free
 
-    hw = distance_transform_edt(free)  # px to obstacle; center ≈ half-width
-    # Medial-ish ridges: local maxima of half-width inside free
+    hw = distance_transform_edt(free)  # 到障碍距离 ≈ 半宽
+    # 半宽局部极大 ≈ 中轴脊
     ridge = free & (hw == maximum_filter(hw, size=5)) & (hw >= 1.0)
     if not np.any(ridge):
         ridge = free & (hw >= max(1.0, float(np.percentile(hw[free], 75))))
 
-    # Nearest ridge half-width for every pixel
     _, (iy, ix) = distance_transform_edt(~ridge, return_indices=True)
     nearest_h = hw[iy, ix]
-    # Cap absurd open-area ridges (parking lots painted free, etc.)
+    # 限制超大开阔区（停车场等）的脊线半宽
     nearest_h = np.minimum(nearest_h, 64.0)
 
     dist_to_free = distance_transform_edt(~free)
     grow = (float(scale) - 1.0) * nearest_h
     return free | (dist_to_free <= grow)
+
 
 def soft_cost_from_free_mask(
     free: np.ndarray,
@@ -110,6 +110,7 @@ def soft_cost_from_free_mask(
     resolution_m: float,
     inscribed_m: float,
 ) -> np.ndarray:
+    """功能：自由掩膜 → 软代价（同 MPPI 脚本逻辑）。"""
     obstacle = ~free
     dist_px = distance_transform_edt(~obstacle)
     dist_m = np.maximum(dist_px - 0.5, 0.0) * float(resolution_m)
@@ -135,6 +136,7 @@ def soft_cost_from_free_mask(
 
 
 def binary_cost(free: np.ndarray) -> np.ndarray:
+    """功能：自由→0，否则致命 254。"""
     return np.where(free, COST_FREE, COST_LETHAL).astype(np.uint8)
 
 
@@ -146,6 +148,7 @@ def process(
     inscribed_m: float,
     soft_cost: bool,
 ) -> dict:
+    """功能：加宽走廊并写出 map/cost 与元数据。"""
     src_map = nav_dir / "map.pgm"
     if not src_map.is_file():
         raise FileNotFoundError(f"missing {src_map}")
@@ -209,6 +212,7 @@ def process(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """功能：命令行入口。"""
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--input", type=Path, required=True, help="nav dir with OSM roads map.pgm (prefer roads_only)")
     p.add_argument("--output", type=Path, required=True, help="sibling output dir")

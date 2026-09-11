@@ -1,0 +1,35 @@
+// osm_city_usd step — OSM → 城市几何 USD 图层
+{
+  // 要构建的图层列表（逗号分隔）；可与下方 layers 开关配合（false 会从列表中剔除）
+  // 默认不含 vegetation/lamps/signs；需要时改 layers 为 true，并加入 build_layers
+  "build_layers": "roads,buildings,water",
+
+  // 各图层总开关（false = 不生成该层）
+  // 道路箭头：仅当 OSM 标注 oneway 时生成确定性入向箭头（无装饰性双向猜测）
+  "layers": {
+    "buildings": true,    // 建筑 mesh
+    "roads": true,        // 道路
+    "water": true,        // 水体
+    "vegetation": false,  // 植被（默认关；需要时改为 true 并加入 build_layers）
+    "lamps": false,       // 路灯（默认关）
+    "signs": false        // 路牌/标志（默认关）
+  },
+
+  // 可选：道路宽度整体缩放系数（传给 build_city_usd --road-width-scale）
+  // "road_width_scale": 1.0,
+
+  // 建筑按 LOD0 网格（默认 500m）拆成 layers/tiles/*.usdc，city_buildings 仅挂 payload
+  "buildings_tiles": {
+    "enabled": true
+  },
+
+  // 相对 {scene_id}-USD/ 的图层输出路径
+  "outputs": {
+    "city_water": "layers/city_water.usdc",
+    "city_vegetation": "layers/city_vegetation.usdc",
+    "city_roads": "layers/city_roads.usdc",
+    "city_buildings": "layers/city_buildings.usdc",
+    "city_lamps": "layers/city_lamps.usdc",
+    "city_signs": "layers/city_signs.usdc"
+  }
+}

@@ -1,4 +1,5 @@
 """CC0 facade/roof candidates for AssetLibrary inbox. Does not change USD generation."""
+# 中文说明：AssetLibrary inbox 候选材质下载与清单（不改 USD 生成）。
 
 from __future__ import annotations
 

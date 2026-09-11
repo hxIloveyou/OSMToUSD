@@ -1,4 +1,5 @@
 """CityEngine-style procedural albedo maps when AssetLibrary images are absent."""
+# 中文说明：无库贴图时生成程序化 albedo。
 
 from __future__ import annotations
 
@@ -500,13 +501,16 @@ def ensure_scene_textures(
     facade_photos: dict[str, list[Path]] | None = None,
     roof_photos: list[Path] | None = None,
     facade_uv_modes: dict[str, list[str]] | None = None,
+    library_dir: Path | None = None,
 ) -> dict[str, Path]:
     """Write albedo PNGs into textures/{roads,buildings,water,vegetation,furniture}/.
 
     Inbox roof photos are ignored (too colorful). Roofs stay Taipei dark-gray procedural.
+    When library_dir has materials/roads, prefer those albedos over procedural fills.
     """
     _ = roof_photos
     from cityusd.looks import facade_variant_count
+    from cityusd.road_assets import ARROW_KIND_ORDER, install_road_library_textures
 
     root = Path(textures_dir)
     roads = root / "roads"
@@ -516,17 +520,25 @@ def ensure_scene_textures(
     furn = root / "furniture"
     out: dict[str, Path] = {}
     uv_modes: dict[str, str] = {}
-    out["highway"] = write_asphalt_png(roads / "highway.png", (28, 28, 32), 1)
-    out["expressway"] = write_asphalt_png(roads / "expressway.png", (36, 36, 40), 2)
-    out["national"] = write_asphalt_png(roads / "national.png", (42, 42, 46), 3)
-    out["provincial"] = write_asphalt_png(roads / "provincial.png", (50, 50, 50), 4)
-    out["county"] = write_asphalt_png(roads / "county.png", (56, 56, 52), 5)
-    out["asphalt"] = write_asphalt_png(roads / "asphalt.png", (64, 64, 64), 6)
-    out["cement"] = write_asphalt_png(roads / "cement.png", (128, 128, 118), 7)
-    out["dirt"] = write_gravel_png(roads / "dirt.png", (118, 82, 42), 8)
-    out["path"] = write_gravel_png(roads / "path.png", (148, 124, 78), 9)
-    out["pavement"] = write_asphalt_png(roads / "pavement.png", (150, 144, 132), 10)
-    out["gravel"] = write_gravel_png(roads / "gravel.png", (110, 104, 96), 11)
+    lib_tex = install_road_library_textures(root, library_dir)
+
+    def _road(key: str, writer) -> None:
+        if key in lib_tex:
+            out[key] = lib_tex[key]
+        else:
+            out[key] = writer()
+
+    _road("highway", lambda: write_asphalt_png(roads / "highway.png", (28, 28, 32), 1))
+    _road("expressway", lambda: write_asphalt_png(roads / "expressway.png", (36, 36, 40), 2))
+    _road("national", lambda: write_asphalt_png(roads / "national.png", (42, 42, 46), 3))
+    _road("provincial", lambda: write_asphalt_png(roads / "provincial.png", (50, 50, 50), 4))
+    _road("county", lambda: write_asphalt_png(roads / "county.png", (56, 56, 52), 5))
+    _road("asphalt", lambda: write_asphalt_png(roads / "asphalt.png", (64, 64, 64), 6))
+    _road("cement", lambda: write_asphalt_png(roads / "cement.png", (128, 128, 118), 7))
+    _road("dirt", lambda: write_gravel_png(roads / "dirt.png", (118, 82, 42), 8))
+    _road("path", lambda: write_gravel_png(roads / "path.png", (148, 124, 78), 9))
+    _road("pavement", lambda: write_asphalt_png(roads / "pavement.png", (150, 144, 132), 10))
+    _road("gravel", lambda: write_gravel_png(roads / "gravel.png", (110, 104, 96), 11))
     out["facade_low"] = write_facade_png(
         bld / "facade_low.png", (168, 122, 82), (40, 52, 70), floors=3, bays=5, seed=20
     )
@@ -608,6 +620,15 @@ def ensure_scene_textures(
     out.update(write_taipei_roof_pngs(bld))
     out["arrow_fill"] = write_solid_png(furn / "arrow_fill.png", (255, 230, 70))
     out["arrow_decal"] = write_arrow_decal_png(furn / "arrow_decal.png")
+    for kind in ARROW_KIND_ORDER:
+        key = f"arrow_{kind}"
+        if key in lib_tex:
+            out[key] = lib_tex[key]
+        elif kind == "straight":
+            out[key] = out["arrow_decal"]
+        else:
+            # Missing specialty arrow → reuse straight procedural/library straight
+            out[key] = out.get("arrow_straight", out["arrow_decal"])
     out["water"] = write_water_png(water / "water.png")
     out["grass"] = write_grass_png(veg / "grass.png")
     out["sign_board"] = write_sign_board_png(furn / "sign_board.png")
@@ -616,6 +637,9 @@ def ensure_scene_textures(
     out["bark"] = write_bark_png(furn / "bark.png")
     out["foliage"] = write_foliage_png(furn / "foliage.png")
     out["_facade_uv"] = uv_modes  # type: ignore[assignment]
+    lib_hits = sorted(k for k in lib_tex if k in out)
+    if lib_hits:
+        print(f"road textures from AssetLibrary: {len(lib_hits)} keys", flush=True)
     return out
 
 
